@@ -1,0 +1,31 @@
+# Tooling
+# still used in 'make test'
+coverage[toml]
+pytest >= 7.4.4
+pytest-xdist
+pytest-timeout >= 2.3.1
+black >= 24.3.0
+bandit
+dprint
+mypy>=1.10.0; implementation_name == "cpython"
+mypy-extensions>=1.0.0
+flake8 >= 7.0.0
+sphinx
+pydata-sphinx-theme
+sphinx-panels
+sphinxcontrib-applehelp
+sphinxcontrib-devhelp
+sphinxcontrib-htmlhelp
+sphinxcontrib-jsmath
+sphinxcontrib-qthelp
+sphinxcontrib-serializinghtml
+sphinxcontrib-napoleon
+commonmark
+stevedore >= 4.0.0
+setuptools-rust >= 1.8.1
+setuptools >= 69.0.2
+types-pytz
+tox >= 4.11.1
+wheel >= 0.42.0
+perftester >= 0.5.1
+pip-tools >= 7.3.0

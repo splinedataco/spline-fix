@@ -1,0 +1,148 @@
+= Spline FIXP Implementation
+:sectnums:
+:sectlinks:
+:sectanchors:
+:toc:
+:source-highlighter: pygments
+:pygments-style: manni
+:pygments-linenums-mode: inline
+:stylesheet: dark.css
+:icons: font
+:iconsdir: /usr/share/asciidoc/icons
+
+== Overview
+
+FIXP is the "FIX Performance Session Layer Technical Specification". Being used
+for this implementation is Version 1.1 - Draft Standard - April 18, 2019.
+
+FIXP spec represents how to implement a high performance session layer using multiple
+transports, and for solving different types of communications. As such, we are only
+implementing the subset of parts that are required for the current needs: Spline Data
+Predictions and Curves Feed.
+
+Identifying requirements that are necessary:
+* transport type : TCP/IP
+  As this is a streaming protocol, we have used the SOFH separator between messages to assist in
+  ascertaining message bounds.
+* Security(Authentication Authorization Audit and Encryption:
+  This is left to the implementer. For encryption Spline FIXP implementation will be using FIX over TLS to communicate.
+  For AAA Spline FIXP will be leveraging a Java Web Token (JWT) similar to OAUTH 2.0. A JWT is retrievied by successful
+  login to the Spline RESTAPI, and may be used for the remainder of the day, a US-Eastern timezone based day.
+  FIXP provides an opaque DATA section into which a JWT may be placed.
+* Session Identification - Generated UUID version 4 (RFC 4122) whis is unique across all sessions and all time. Spline
+  resets this information daily, so a UUID unique per day across all sessions is acceptable.
+* User Identification - supplied as part of the JWT.
+* Session Lifetime - Session is valid until shutdown of system at the end of day, while this may vary, typically 17:30 ET
+  on business days, including half days.
+* Flow Type:
+  * Server to Client (sc) - Idempotent
+    Transport is TCP/IP which guarantees delivery and order of sent messages.
+	Both the Prediction and Curve messages represent a specific time interval
+	and provide that interval in a message.
+	* Late Joins and disconnect/rejoins: The next received timestamp will indicate
+	the current interval being updated and is a delta from the prior interval. Should
+	one or more messages be missed, the entire interval may be retrieved via Spline's
+	SFTP service.
+	[WARNING]
+	****
+	*To implementer*, may be desirable at the beginning of an interval to send
+	and "end of interval" message that contains all cusips or curves that were updated
+	in the prior interval, and before sending the next interval. Recepients can then
+	know that they've received all of the information for the prior interval.
+	Similarly, on reconnect, send a full interval upon connect, though this will require special handling
+	on the server side, it should be possible. A trade-off is that with the
+	trailing interval message it's possible to skip sessions that are backed up, and if the client
+	resumes, they can detect that they lost a message. But other than these situations it
+	requires additional bandwidth (a small amount)
+	OR: just use a sequence message before every one of these messages. Does mean that all of the messages
+	need to be retained, and each session needs to keep track of individual sequence in relation to sent
+	messages sequence. If we require "applied" messages then the amount of state to be maintained can be kept
+	to a minimum. Reconnects get a full publish of the most recent interval along with maintaining the message
+	sequence mapping. Also possible, map sequence ranges to time intervals (right, per message stream. hmm...)
+	and if a sequence gap is identified in that range, resend the whole range.
+
+	Another idea: when generating new outbound data, mmap a region of memory to disk, (perhaps use feather?)
+	and when an update occurs send the update to the handler(s) for that message, and give it the offset and
+	range of the message to be sent. Each instance keeps a start end pointer into each ring buffer and serves
+	messages from that, and keeps track of the offset/seq mapping for each session and feed. That gives a shared
+	buffer between all of them rather than one for each, and their outbound buffers can be kept up to date.
+	In the situation where a resend request is sent for a prior interval that is no longer in the ring loop,
+	send a gap fill and then send a snapshot of the most recent interval, continue to send realtime traffic
+	as necessary.
+	****
+  * Client to Server (cs) - None
+    Application messages flow only from Server to Client. Client to Server messages
+	will still be done for session layer messaging (negotiation, login, establish session, heartbeat).
+* Heartbeats
+  * SC 1 second
+  * CS 1 second
+  Only if no other data was transmitted in same direction within 1 second.
+
+
+Modeling from https://cdn.cboe.com/resources/membership/US_Options_BOE_Specification.pdf
+Though this is a Binary Order Entry (BOE) feed, it has similar requirements and indicates
+that, while it tries to follow FIX where it can, when it needs to deviate it does.
+
+
+
+== Stages
+
+=== Messages
+Initializing
+  * Negotiate
+  * NegotiationResponse
+  * NegotiationReject
+  * (Topic, listed as multicast only)
+Binding
+  * Establish
+  * EstablishmentAck
+  * EstablishmentReject
+Transferring
+  * Sequence
+  * Context(Multiplexing)
+  * UnsequencedHeartbead(Keep-alive)
+  * RetransmitRequest
+  * Retransmission
+Unbinding
+  * Terminate
+Finalizing
+  * FinishedSending
+  * FinishedReceiving
+
+=== Application Messages
+Transferring
+  * Applied
+  * NotApplied
+
+
+== NOTES
+
+* use the current (spline) message header. Make new messages.
+* add a sequence message, it can be sent preceding groups of messages.
+* it says what the NEXT sequence number is, basically a heartbeat. Sequence numbers don't count sequence messages.
+* upon receiving a sequence out of order, it is known that the receiver has missed messages and may request a retransmit.
+* Unless the receiver backs up for a long period of time, it's unlikely that any messages will be dropped or out of sequence.
+* messages have enough information in them to identify which interval they belong to. As long as they are not applied after a
+  subsequent interval time, they are idempotent and may be applied multiple times without consequence.
+
+
+Create a session layer message.
+Send regular SOFH and message header. 0 in message header indicates that a session message follows.
+Session message header contains the type of message that it is. and bodyLength.
+
+
+== What to build
+
+=== Session layer header
+
+SOFH
+Message Header
+Session Layer Header
+Session Layer Message
+
+
+=== Session Layer Messages
+
+==== Negotiate
+
+

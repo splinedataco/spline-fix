@@ -1,0 +1,267 @@
+[build-system]
+requires = [
+  "pip-tools>=7.3.0",
+  "pytest>=7.4.4",
+  "pytest-mock",
+  "pytest-timeout>=2.3.1",
+  "testresources",
+  "types-python-dateutil",
+  "setuptools >= 69.0.2",
+  "wheel >= 0.42.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.1.0"
+classifiers = [
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Development Status :: 2 - Alpha",
+  "Operating System :: POSIX",
+  "Environment :: Console",
+]
+name = "spline-fix"
+
+dependencies = [
+  "polars==0.20.23",
+  "pyarrow>=14.0.2, < 15.0.0; platform_system != 'FreeBSD'",
+  "pyjwt>=2.8.0, < 3.0.0",
+  "python-dateutil",
+  "pytz",
+  "pyyaml",
+  "regex",
+  "testresources",
+  "typed-argument-parser",
+  "types-python-dateutil",
+  "watchdog>=4.0.0",
+  "wrapt>=1.16.0",
+  "typing_extensions; python_version < '3.11'",
+]
+requires-python = ">=3.10, <3.13"
+
+[project.scripts]
+sfix = "joshua.fix.main:main"
+
+[tool.setuptools.packages.find]
+where = ["python/"]
+include = ["joshua.fix"]
+namespaces = true
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+exclude = [
+]
+disallow_untyped_defs = true
+warn_unused_ignores = true
+show_error_codes = true
+files = ["python/**", "tests/**"]
+[[tool.mypy.overrides]]
+module = "joshua.fix"
+#disable_error_code = ["attr-defined"]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "jwt",
+  "tests.fix.integration.test_reader",
+  "watchdog.events",
+  "watchdog.observers",
+  "watchdog.observers.polling",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "polars",
+  "polars.testing",
+  "pytest",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  # also use "Self"
+  "joshua.fix.messages.curves",
+  "joshua.fix.messages.predictions",
+  "joshua.fix.types",
+  "joshua.fix.fixp.sequence",
+]
+disable_error_code = [
+  "assignment",
+  "call-overload",
+  "misc",
+  "no-untyped-def",
+  "attr-defined",
+  "index",
+  "arg-type",
+  "override",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "joshua.fix.fixp.messages",
+]
+disable_error_code = [
+  "assignment",
+  "attr-defined",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "joshua.fix.sbe",
+  "joshua.fix.sofh",
+  "joshua.fix.messages.featureset",
+]
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+  "joshua.fix.messages",
+  "joshua.fix.fixp.establish",
+]
+disable_error_code = [ "attr-defined", "assignment", ]
+
+[[tool.mypy.overrides]]
+module = [
+  "joshua.fix.messages.test_curves",
+  "joshua.fix.integration.test_reader",
+  "joshua.fix.messages.test_predictions",
+  ]
+disable_error_code = ["no-untyped-def"]
+
+[[tool.mypy.overrides]]
+module = [
+  "joshua.fix.reader",
+  "joshua.fix.server",
+  "joshua.fix.client",
+]
+# these are needed only because of mypy. At the moment it can't understand proxy objects
+# that are used of multiprocessing.Value. NOTE: Value is actually a factory method not a class
+# and the returned item is a "Synchronized", but while mypy understands `Synchronized[ctypes.c_double]`
+# python throws an error because it things your are trying to access an array element
+disable_error_code = ["assignment", "attr-defined", "misc"]
+
+[[tool.mypy.overrides]]
+module = ["tests.fix.test_types"]
+disable_error_code = ["arg-type"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "@overload"]
+
+[tool.pytest.ini_options]
+minversion = "6.2"
+# -ra -q perhaps for production
+# for development, verbose is better
+addopts = "-ra -v -p no:checkdocs -n auto --import-mode=append --cov=python/joshua/fix --cov-append --cov-report=xml:tests/coverage.xml --cov-report=html:tests/coverage.html --cov-report term-missing --cov-report annotate:tests/cov_annotate tests/"
+testpaths = ["python/joshua/fix", "tests"]
+python_files = [
+  "test_*.py",
+  "*_test.py",
+  "testing/python/*.py",
+  "tests/python/*.py",
+  "tests/*.py",
+]
+timeout = 30
+
+pythonpath = ["python"]
+mock_use_standalone_module = true
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py312']
+include = '\.pyi?$'
+exclude = "examples/*"
+
+[tool.bandit]
+# only run these tests
+# tests = []
+# skips = []
+exclude = [".tox", "venv", "dist", "/test"]
+exclude_dirs = ["examples", "benchmarks"]
+
+[tool.liccheck]
+authorized_licenses = [
+  "bsd",
+  "new bsd",
+  "bsd license",
+  "3-Clause BSD",
+  "new bsd license",
+  "simplified bsd",
+  "apache",
+  "apache 2.0",
+  "apache software license",
+  "Apache Software",
+  "gnu lgpl",
+  "lgpl with exceptions or zpl",
+  "isc license",
+  "isc license (iscl)",
+  "mit",
+  "mit license",
+  "python software foundation license",
+  "Python Software Foundation",
+  "zpl 2.1",
+]
+unauthorized_licenses = ["gpl v3", "agpl"]
+# strategy_ini_file = "./liccheck.ini"
+# level = "STANDARD"
+# requirement_txt_file = "./requirements.txt" # ignored if dependencies or optional_dependencies are defined
+# reporting_txt_file = "path/to/reporting.txt file" # by default is None
+# no_deps = false
+dependencies = true # to load [project.dependencies]
+optional_dependencies = [
+  "test",
+] # to load extras from [project.optional-dependencies]
+
+[tool.liccheck.authorized_packages]
+uuid = "1.30"
+
+[tool.pyright]
+include = ["python"]
+exclude = [
+  "**/__pycache__",
+  "tests",
+  "src",
+  "benchmarks",
+  "htmlcov",
+  "integration_test_data",
+]
+# this is how to ignore
+#ignore = ["src/oldstuff"]
+#defineConstant = { DEBUG = true }
+#stubPath = "src/stubs"
+#venv = "env367"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+pythonVersion = "3.12"
+# usually
+pythonPlatform = "Linux"
+
+executionEnvironments = [
+  { root = "python/fix", pythonVersion = "3.10", pythonPlatform = "Linux" },
+  { root = "python/fix", pythonVersion = "3.12", pythonPlatform = "Linux" },
+  #{ root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
+  { root = "tests" },
+]
+
+# suggestions
+# `ruff check .`
+# `ruff format --diff .`
+# `ruff format --line-length=88 --check .`
+# `ruff check --fix .`
+[tool.ruff.lint.per-file-ignores]
+"python/joshua/fix/messages/predictions/__init__.py" = ["E501"]
+
+[tool.ruff.format]
+exclude = ["tests/*"]
+
+[tool.ruff]
+line-length = 88

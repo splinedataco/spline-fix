@@ -1,0 +1,7 @@
+NEXT_AVAIL_TEMPLATE_ID = 3
+SPLINE_MUNI_DATA_SCHEMA_ID = 42
+SPLINE_FIXP_SESSION_SCHEMA_ID = 0
+SPLINE_MUNI_DATA_SCHEMA_VERSION = 0
+
+# we only have one schema id today, so
+# no map/array for it

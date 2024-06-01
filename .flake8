@@ -1,0 +1,61 @@
+[flake8]
+# just stop shouting as black decides line lengths.
+max-line-length = 180
+min_python_version = 3.10
+# D100 Missing docstring in public module
+# D101 Missing docstring in public class
+# D103 Missing docstring in public function
+# D104 Missing docstring in public package
+# D105 Missing docstring in magic method
+# D107 Missing docstring in __init__
+# D201 No blank lines allowed before function docstring
+# D205 1 blank line required between summary line and description
+# E203, W503: due to black fmt
+# D400 First line should end with a period
+# D401 First line should be in imperative mood; try rephrasing
+ignore = D100, D101, D102, D103, D104, D105, D107, D201, D205, E203, W503, D400, D401
+exclude = venv, target, test_compare_gen_curve_ng_og.py, python/joshua/utils/downloader/datacapture/msrb/rtrs.py
+# python/joshua/utils/diff.py:7:2: N813 camelcase 'Mergent' imported as lowercase 'mg'
+# tests/calculators/test_yield_to_price.py:35:1: D105 Missing docstring in magic method
+# python/joshua/helpers/bond_date_functions.py:41:6: N806 variable 'Y1' in function should be lowercase
+# python/joshua/calculators/price_to_yield.py:73:10: N806 variable 'R' in function should be lowercase
+# python/joshua/helpers/bond_date_functions.py:41:6: N806 variable 'Y1' in function should be lowercase
+# tests/calculators/test_price_and_yield.py:31:1: D105 Missing docstring in magic method
+# python/joshua/calculators/yield_to_price.py:38:6: N803 argument name 'A' should be lowercase
+# python/joshua/utils/downloader/datacapture/msrb/rtrs.py: B038 editing a loop's mutable iterable often leads to unexpected results/bugs
+per-file-ignores = 
+    */__init__.py: F401
+    python/joshua/utils/diff.py: N813
+    python/joshua/calculators/*.py: N803, N806
+    python/joshua/helpers/*.py: N806
+    python/joshua/products/curve/curve_weight_optimize.py: N806
+    python/joshua/utils/downloader/datacapture/msrb/rtrs.py: E501
+    python/joshua/fix/messages/predictions/__init__.py: E501
+    python/joshua/utils/get_stored_files.py: E251, E252
+    examples/mergent_example_parquet_df_usage.py: E501
+    examples/diff_parquet.py: E501, E225, E265, F401
+    examples/diff_weight_parquet.py: E126, E225, E226, E265, E302, E303, E501, E225, F401
+    tests/products/test_enrich_vs_enrich.py: F401
+    tests/fix/test_types.py: F841, E501
+    python/joshua/utils/relativedelta.py: N801, B019
+    tests/products/test_curve_weight_optimize.py: N806, E266
+    tests/spliners/test_mergent_historic.py: E501
+    python/joshua/utils/s3/clients.py: N803
+    python/joshua/utils/grabbag.py: B010
+    tests/regression/test_sd_198.py: E501, F841
+    python/joshua/utils/downloader/datacapture/msrb/rtrs.py: B038
+    python/joshua/utils/distributed/dispatch/curves.py: B008
+    python/joshua/utils/distributed/dispatch/weights.py: B008
+    tests/fix/integration/test_reader.py: W605
+    tests/fix/messages/test_predictions.py: E501
+    # variables and functions are mixed case to match FIX specification names
+    # can be changed later when more time if necessary
+    python/joshua/fix/fixp/messages.py: N815, N802, N806
+    python/joshua/fix/fixp/establish.py: N815, N802, N806
+    python/joshua/fix/fixp/terminate.py: N815, N802, N806
+    python/joshua/fix/fixp/sequence.py: N815, N802, N806
+    python/joshua/fix/types/__init__.py: N815, N802, N806
+    # line too long. Have full b64encoded jwt in there.
+    tests/fix/fixp/test_messages.py: E501
+    tests/fix/fixp/test_establish.py: N806
+    tests/fix/integration/test_reader.py: B015

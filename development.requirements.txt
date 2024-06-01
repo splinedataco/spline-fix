@@ -1,0 +1,12 @@
+# also install `pip install -r build.requirements.txt`
+ruff
+ruff-lsp
+python-lsp-ruff
+pynvim
+pyright
+jedi
+jedi-language-server
+pyproject-api
+tox
+lazygit
+
