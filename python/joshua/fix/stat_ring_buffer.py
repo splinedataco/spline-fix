@@ -59,12 +59,12 @@ class StatRingBuffer:
         while True:
 
             (sofh, _) = Sofh.deserialize(
-                byte_buffer=self._file_mmap[0 : Sofh.NUM_BYTES]
+                byte_buffer=self._file_mmap[0 : Sofh.NUM_BYTES]  # type: ignore[attr-defined] # defined in base class
             )
             sofh = cast(Sofh, sofh)
             full_msg_sz = sofh.message_len()
             # seek current pos + full_msg_sz
-            self._file_mmap.seek(full_msg_sz, 1)
+            self._file_mmap.seek(full_msg_sz, 1)  # type: ignore[attr-defined] # defined in base class
 
     @staticmethod
     def has_wrapped(rb: ReadonlyRingBuffer) -> bool:

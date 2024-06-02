@@ -47,7 +47,7 @@ requires-python = ">=3.10, <3.13"
 sfix = "joshua.fix.main:main"
 
 [tool.setuptools.packages.find]
-where = ["python/"]
+where = ["python"]
 include = ["joshua.fix"]
 namespaces = true
 
@@ -55,12 +55,15 @@ namespaces = true
 profile = "black"
 
 [tool.mypy]
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "python"
 exclude = [
 ]
 disallow_untyped_defs = true
 warn_unused_ignores = true
 show_error_codes = true
-files = ["python/**", "tests/**"]
+files = ["python/fix", "tests"]
 [[tool.mypy.overrides]]
 module = "joshua.fix"
 #disable_error_code = ["attr-defined"]
@@ -92,6 +95,10 @@ module = [
   "joshua.fix.messages.predictions",
   "joshua.fix.types",
   "joshua.fix.fixp.sequence",
+  "fix.messages.curves",
+  "fix.messages.predictions",
+  "fix.types",
+  "fix.fixp.sequence",
 ]
 disable_error_code = [
   "assignment",
@@ -107,6 +114,7 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
   "joshua.fix.fixp.messages",
+  "fix.fixp.messages",
 ]
 disable_error_code = [
   "assignment",
@@ -118,6 +126,9 @@ module = [
   "joshua.fix.sbe",
   "joshua.fix.sofh",
   "joshua.fix.messages.featureset",
+  "fix.sbe",
+  "fix.sofh",
+  "fix.messages.featureset",
 ]
 disable_error_code = ["attr-defined"]
 
@@ -125,6 +136,8 @@ disable_error_code = ["attr-defined"]
 module = [
   "joshua.fix.messages",
   "joshua.fix.fixp.establish",
+  "fix.messages",
+  "fix.fixp.establish",
 ]
 disable_error_code = [ "attr-defined", "assignment", ]
 
@@ -133,6 +146,9 @@ module = [
   "joshua.fix.messages.test_curves",
   "joshua.fix.integration.test_reader",
   "joshua.fix.messages.test_predictions",
+  "fix.messages.test_curves",
+  "fix.integration.test_reader",
+  "fix.messages.test_predictions",
   ]
 disable_error_code = ["no-untyped-def"]
 
@@ -141,6 +157,9 @@ module = [
   "joshua.fix.reader",
   "joshua.fix.server",
   "joshua.fix.client",
+  "fix.reader",
+  "fix.server",
+  "fix.client",
 ]
 # these are needed only because of mypy. At the moment it can't understand proxy objects
 # that are used of multiprocessing.Value. NOTE: Value is actually a factory method not a class

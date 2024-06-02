@@ -152,10 +152,10 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                 return
             logging.debug("get_message_body")
             body_bytes = self.get_message_body(sofh)
-            logging.debug("message body: {}".format(body_bytes.hex(":")))
+            logging.debug("message body: {}".format(body_bytes.hex(":")))  # type: ignore[union-attr]
             # should start with the header
             logging.debug("read_header")
-            (header, rem_bytes) = self.read_header(data=body_bytes)
+            (header, rem_bytes) = self.read_header(data=body_bytes)  # type: ignore[arg-type]
             logging.debug("read_header now yield triplet")
             yield (sofh, header, rem_bytes)
             logging.debug("returned from yield")
@@ -204,7 +204,9 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                 ):
                     tb = sofh.message_len()
                     logging.debug("analyze curves")
-                    curve_metrics["total_bytes"] = curve_metrics["total_bytes"] + tb
+                    curve_metrics["total_bytes"] = (
+                        cast(int, curve_metrics["total_bytes"]) + tb
+                    )
                     (curve_dt_tm, feature_list, df_list, rem_bytes) = (
                         MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(
                             data
@@ -221,23 +223,25 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                     for feat, df in zip(feature_list, df_list):
                         # each dataframe is one curve, one row basically
                         curve_metrics["total_messages"] = (
-                            curve_metrics["total_messages"] + 1
+                            cast(int, curve_metrics["total_messages"]) + 1
                         )
                         curve_metrics["total_rows"] = (
-                            curve_metrics["total_rows"] + df.shape[0]
+                            cast(int, curve_metrics["total_rows"]) + df.shape[0]
                         )
-                        curve_metrics["feature_sets"].add(feat)
+                        cast(set, curve_metrics["feature_sets"]).add(feat)
                         curve_metrics["max_total_message_bytes"] = max(
-                            curve_metrics["max_total_message_bytes"], sofh.message_len()
+                            cast(int, curve_metrics["max_total_message_bytes"]),
+                            sofh.message_len(),
                         )
                         curve_metrics["max_body_message_bytes"] = max(
-                            curve_metrics["max_body_message_bytes"], body_len
+                            cast(int, curve_metrics["max_body_message_bytes"]), body_len
                         )
                         curve_metrics["min_total_message_bytes"] = min(
-                            curve_metrics["min_total_message_bytes"], sofh.message_len()
+                            cast(int, curve_metrics["min_total_message_bytes"]),
+                            sofh.message_len(),
                         )
                         curve_metrics["min_body_message_bytes"] = min(
-                            curve_metrics["min_body_message_bytes"], body_len
+                            cast(int, curve_metrics["min_body_message_bytes"]), body_len
                         )
 
                 case (

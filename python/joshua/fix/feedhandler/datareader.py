@@ -7,13 +7,13 @@ import polars as pl
 import os
 import socket
 
-from fix.client import FixClientSession
-from fix.fixp.messages import (
+from joshua.fix.client import FixClientSession
+from joshua.fix.fixp.messages import (
     Jwt,
 )
-from fix.client import HandleNegotiation
-from fix.reader import SessionStateEnum
-from fix.service.spline_data import SignalHandler
+from joshua.fix.client import HandleNegotiation
+from joshua.fix.reader import SessionStateEnum
+from joshua.fix.service.spline_data import SignalHandler
 
 mp_ctx = mp.get_context("fork")
 logger = mp_ctx.get_logger()
