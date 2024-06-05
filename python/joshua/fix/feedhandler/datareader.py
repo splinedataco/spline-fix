@@ -14,6 +14,10 @@ from joshua.fix.fixp.messages import (
 from joshua.fix.client import HandleNegotiation
 from joshua.fix.reader import SessionStateEnum
 from joshua.fix.service.spline_data import SignalHandler
+from joshua.fix.fixp.messages import (
+    ClientJwt,
+)
+
 
 mp_ctx = mp.get_context("fork")
 logger = mp_ctx.get_logger()
@@ -147,7 +151,7 @@ def main() -> int:
     logger = mp_ctx.log_to_stderr()
     # logger = mp_ctx.get_logger()
     # logger.setLevel(logging.getLogger().level)
-    loglevel = logging.WARNING
+    loglevel = logging.DEBUG
     logger.setLevel(loglevel)
     logger.propagate = True
     """
@@ -175,8 +179,8 @@ def main() -> int:
     """
     # Config
     cmd_ctx = {
-        "ipv4addr": "127.0.0.1",
-        "port": 36000,
+        "ipv4addr": "3.137.181.235",
+        "port": 16923,
         "work_dir": "~/client_s3",
         "heartbeat_interval": 1000,
         "loglevel": loglevel,
@@ -185,42 +189,17 @@ def main() -> int:
     logger.debug("read TOKEN from env")
     token = os.getenv(key="TOKEN")
     if token is None:
-        logger.debug("no TOKEN in env. Make Jwt")
-        roles = ["Coverage:Full", "User:Admin", "User:Business"]
-        capabilities = [
-            "TodaysCurves",
-            "AllYieldFeatures",
-            "RealTimeData",
-            "YieldRevSectors",
-            "HistoricCurves",
-            "UserAdmin",
-            "AllYieldCoupons",
-            "AclDataApi",
-            "PricePredictions",
-        ]
-        jwtdata = {"name": "Thaddeus Covert"}
-        issuer = "Lambda Auth API"
-        subject = "thaddeus@splinedata.com"
-        # NOTE: if intended to work with server, the same secret_key
-        #       must be set in the environment for both server and client
-        # Jwt gets key from SPLINE_SECRET_KEY, or makes it randomly
-        logger.debug("Jwt.generate")
-        tok_gen = Jwt.generate(
-            roles=roles,
-            capabilities=capabilities,
-            issuer=issuer,
-            userid=subject,
-            username=jwtdata["name"],
-        )
-        token = cast(Jwt, tok_gen)  # type: ignore[assignment]
-        logging.debug("Made jwt: {}".format(token))
-
-        cmd_ctx["token"] = tok_gen
-        return client_main(cmd_ctx)
-    return 0
+        raise ValueError("You must have a TOKEN in your environment")
+    token_enc = token.encode("latin1")
+    tok_gen: ClientJwt = ClientJwt(token=token_enc)
+    cmd_ctx["token"] = tok_gen
+    return client_main(cmd_ctx)
 
 
 if __name__ == "__main__":
     import sys
+    import logging
+
+    logger.setLevel(logging.DEBUG)
 
     sys.exit(main())
