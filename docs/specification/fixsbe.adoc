@@ -1,0 +1,1395 @@
+= Spline Data FIX SBE Specification
+
+== Overview
+
+Spline Data FIX SBE is a predictions data feed product offered by SplineData, LLC. This specification covers
+the binary FIX approach to receiving predictions. Times in this document, unless otherwise marked, are
+US-eastern, as used by the MSRB.
+
+Spline Data FIX SBE features the following products in a binary number format:
+
+* Municipal Bond Curves: For Spline Municipal Bond Curves, Spline will provide, for a select group of sets,
+  curve predictions for a set of features consisting of rating, payment, coupon, trade size, and liquidity.
+  Curves are published at 5 minute intervals from 0800(8am) ET to 1700(5pm)ET. Information included in
+  Spline Municipal Bond Curves are the Tenor and the Yield.
+
+* Municipal Bond Yield and Price Predictions: Spline Municipal Bond Yield and Price Predictions contain
+  per cusip yield predictions, and optionally also per cusip price predictions.
+
+== Architecture
+
+The Spline Data FIX SBE feed is made up of a series of messages, currently unsequenced and relies on
+a reliable transport, such as TCP/IP, to take care of sequencing and delivery guarantees.
+Late join and disconnection resumption semantics are handled using out of band retrieval of data, using
+a separate offering from Spline.
+
+Spline currently offers the Data FIX SBE feed in only FIXP/TCP format; a standardized FIX session layer
+protocol similar to Nasdaq SoupBinTCP. Secure communication is provided by using communicating over
+standard TLS.
+
+== Data Types
+
+Data FIX SBE encoding follows the FIXP, FIX SBE, and FIX SOFH, specifications. SOFH is transmitted
+in big endian (network byte order), as per SOFH spec, and in the SOFH defines the protocol encoding
+as follows. This specification uses little endian encoding, as such, unless explicitly defined otherwise,
+little endian may be assumed as the default in this specification.
+
+All alpha fields are fixed length, ASCII(latin-1, ISO-8859-1) fields which are left justified and padded on the right
+with nulls '\x00'. An alpha field at the maximum length will NOT have a terminating null.
+
+Yields and prices are represened using decimal encoding with fixed precision. Yield bounds are: [-32.768, 32.768].
+Though price bounds are: [-2,147,483.648, 2,147,483.648] they may reasonably be assumed to be logically bound between
+[0, 1000.000].
+
+== Message Formats
+
+The Spline Data FIX SBE predictions feed is composed of a series of messages which convey the updates since
+the last interval. They are idempotent in that a message applied multiple times will result in the same data
+transformation, however, they must be applied in proper sequence, where messages having later timestamps
+take precedence over preceeding messages.
+
+== Binary Type System
+
+Spline FIX SBE predictions feed uses a subset of the documented types in the FIX SBE v1.0 specification.
+The binary type system binds to native binary data types, and defines derived types as needed.
+
+Enhancements to the binary type system:
+* Provide accuracy for floating point numbers.
+* Restrict or permit values to help with type safety.
+* Provide enumerations covering available choices for relevant types.
+* Minimize amount of bandwidth and cpu required to process the datafeed.
+
+=== Binary Encoding
+
+Binary encoding provides direct data access when possible, and simple transformation logic when
+required. This is accomplished by:
+
+* Use of native binary data types and simple types deived from native binary types, such as timestamps.
+* Fixed position and length fields, which allow direct access to data.
+* Padding added when necessary to byte align a field to permit direct access without memory access violations.
+
+Spline SBE schema supports the Simple Binary Encoding Specification SBE version 2.0 release candidate 2,
+and is also backwards compatible with SBE version 1.0.
+
+.Data type summary
+[%header,%autowidth]
+[#type-summary]
+|===
+|FIX semantic type |Binary type |Section |Description
+
+|int
+|Integer encoding
+|<<integer_encoding_spec>>
+|An integer numeric
+
+|NumInGroup
+|Group dimension encoding
+|<<group_dim_enc>>
+|A counter representing the number of entries in a repeating group. Value must be positive.o
+
+|float
+|Float or Decimal
+|<<decimal_encoding>>
+|A real number with binary representation of specified precision. Decimal encoding is preferred for exact decimal numbers.
+
+|char
+|Character
+|<<character_encoding>>
+|Single-byte character value. Can include any alphanumeric character or punctuation. All char fields are case sensitive.(i.e. m != M)
+
+|String
+|Fixed-length character array
+|<<fixed_len_char>>
+|A fixed-length character array of single-byte encoding.
+
+|data
+|Fixed-length data
+|<<fixed_len_data>>
+|Fixed-length non-character data
+
+|Implicit enumeration--char or int
+|Enumeration encoding
+|<<enum_encoding>>
+|A single choice of alternative values
+
+|Boolean
+|Boolean encoding
+|<<bool_enc>>
+|Values true or false
+
+|MultipleCharValue
+|Multi-value choice encoding
+|<<multi_val_choice_enc>>
+|Multiple choice of a set of values
+
+|Price
+|Decimal encoding
+|<<decimal_encoding>>
+|A decimal number representing a price.
+
+|Yield
+|Decimal encoding
+|<<decimal_encoding>>
+|A field representing yield. A percentage with format 3.123 representing 3.123%.
+
+|UTCTimestamp
+|Date and time encoding
+|<<date_time_enc>>
+|Time/date combination represented in UTC (Universal Time Coordinated, also known as "GMT")
+
+|LocalMktDate
+|Local date encoding
+|<<date_time_enc>>
+|MSRB local date. US-eastern (as opposed to UTC)
+
+
+|===
+
+
+.Integer encoding
+[[integer_encoding_spec]]
+[%header,%autowidth]
+|===
+|name |primitiveType |Description |Length (octets)
+
+|int8
+|int8
+|Signed byte
+|1
+
+|uint8
+|uint8
+|Unsigned byte/single-byte character
+|1
+
+|uint16
+|uint16
+|16-bit unsigned integer
+|2
+
+|int16
+|int16
+|16-bit signed integer
+|2
+
+|int32
+|int32
+|32-bit signed integer
+|4
+
+|uint32
+|uint32
+|32-bit unsigned integer
+|4
+
+|int64
+|int64
+|64-bit signed integer
+|8
+
+|uint64
+|uint64
+|64-bit unsigned integer
+|8
+
+|===
+
+.Range attributes for integer fields
+[[int_range_attr]]
+[%header,%autowidth]
+|===
+|Schema attribute |int8 |uint8 |int16 |uint16 |int32 |uint32 |int64 |uint64
+
+|minValue
+|-127
+|0
+|-332767
+|0
+a|-2^31^ + 1
+|0
+a|-2^63^ + 1
+|0
+
+|maxValue
+|127
+|254
+|32767
+|65534
+a|2^31^ - 1
+a|2^32^ - 2
+a|2^63^ - 1
+a|2^64^ - 2
+
+|nullValue
+|-128
+|256
+|-32768
+|65535
+a|-2^31^
+a|2^32^ - 1
+a|-2^63^
+a|2^64^ - 1
+|===
+
+[[decimal_encoding]]
+=== Decimal encoding
+
+Decimal encodings are used for accuracy when representing real numbers.
+
+==== Composite encodings
+
+Prices and Yields are encoded as a scaled decimal, consisting of a signed integer mantissa and a signed exponent.
+For example, a mantissa of `123456` and exponent of `-4` represents the decimal number `12.3456`.
+
+===== Mantissa
+
+Mantissa represents the significant digits of a decimal number. Known in mathematics as significand or coefficient.
+
+===== Exponent
+
+Exponent represents scale of a decimal number as a power of 10.
+
+===== Floating point and fixed point encodings
+
+A floating-point decimal transmits the exponent on the wire while a fixed-point decimal specifies a fixed exponent in a message schema.
+A constant negative exponent specifies a number of assumed decimal places to the right of the decimal point.
+
+Spline FIX SBE predictions feed supports 16 bit, 32 bit, and 64 bit mantissa. Usage is dictated by the
+data range that must be represented. The exponent is always 8 bits.
+
+.Floating and fixed point encodings
+[[float_fixed_dec_enc]]
+[%header,cols="1,2,2,>1,5"]
+|===
+|Encoding type |Description |Backing primitive |Length (octets) |FIXML example
+
+|decimal
+|Floating-point decimal
+|Composite: int64 mantissa, int8 exponent
+|9
+|
+
+|decimal64
+|Fixed-point decimal
+|int64 mantissa, constant exponent
+|8
+|
+
+|decimal_f32
+|Floating-point decimal
+|Composite: int32 mantissa, int8 exponent
+|5
+a|
+
+|decimal32 
+|Fixed-point decimal
+|int32 mantissa, constant exponent
+|4
+a|
+[source,xml]
+----
+include::curves_spec.xml[tag=fixed32_decimal_encoding]
+----
+
+|decimal16
+|Fixed-point decimal
+|int16 mantissa, constant exponent
+|2
+a|
+[source,xml]
+----
+include::curves_spec.xml[tag=fixed16_decimal_encoding]
+----
+
+|data
+|uint8
+|variable length data array
+|1
+a|
+[source,xml]
+----
+include::curves_spec.xml[tag=data_array_encoding]
+----
+
+
+
+|===
+
+.Range attributes for decimal fields
+[[decimal_ranges]]
+[%header,%autowidth]
+|===
+|Schema attribute |decimal |decimal64 |decimal_f32 |decimal32 |decimal16
+
+|exponent range
+|-128 to 127
+|-128 to 127
+|-128 to 127
+|-128 to 127
+|-128 to 127
+
+|mantissa range
+a|-2^63^ + 1 to 2^63^ - 1
+a|-2^63^ + 1 to 2^63^ - 1
+a|-2^31^ + 1 to 2^31^ - 1
+a|-2^31^ + 1 to 2^31^ - 1
+a|-2^15^ + 1 to 2^15^ - 1
+
+|minValue
+a|(-2^63^ + q) * 10^127^
+a|(-2^63^ + q) * 10^127^
+a|(-2^31^ + q) * 10^127^
+a|(-2^31^ + q) * 10^127^
+a|(-2^15^ + q) * 10^127^
+
+a|nullValue:{empty}footnote:[When null for an optional field is indicated by an additional field indicator, the decimal fields will be 0, and reading may be skipped entirely.]
+a|mantissa=-2^63^, exponent=-128
+a|mantissa=-2^63^
+a|mantissa=-2^31^, exponent=-128
+a|mantissa=-2^31^
+a|mantissa=-2^15^
+
+|===
+
+
+=== String encodings
+
+For simplicity Spline FIX SBE has accepted the FIX SBE recommendation to restrict character data to be only of fixed size.
+Fixed size character data allows support for direct access to data.
+
+==== Character
+
+Character fields hold a single character of a single-byte character set. Most commonly used with character code
+enumerations. See <<enum_encoding>> below for discussion of enum fields.
+
+.Character encoding
+[[char_enc]]
+[%header,cols="2,3,2,1"]
+|===
+|FIX data type |Description |Backing primitive |Length (octet)
+
+|char
+|A single character
+|char
+|1
+
+|===
+
+
+===== Range attributes for char fields
+
+Character fields are constrained to single-byte character sets. Spline FIX SBE predictions has taken
+the FIX SBE recommendation of encoding strings in ISO/IEC 8859-1:1998 Latin alphabet No. 1.
+
+Latin alphabet No. 1 reserves two ranges for control codes defined by ISO/IEC 6429:1922 control character
+sets C0 and C1.
+
+The implicit nullValue is the NUL control character (code 0).
+
+.Character value range
+[[char_range]]
+[%header,%autowidth]
+|===
+|Schema attribute |char
+
+|minValue
+|hex 20 represented also as 0x20 or \x20
+
+|maxValue
+|hex ff represetned also as 0xff or \xff
+
+|nullValue
+|0
+
+|===
+
+==== Fixed-length character array
+
+Character arrays are allocated a fixed space in a message, supporting direct access to fields.
+
+.String encoding
+[[str_enc]]
+[%header,cols="1,3,1,2,1,5"]
+|===
+|FIX data type |Description |Backing primitive |Length (octets) |Required schema attribute
+
+|String
+|character array
+|Array of char of specified length, delimited by NUL character if a string is shorter than the length specified for a field.
+|Specified by length attribute
+|length
+
+|===
+
+.Range attributes for string Length
+[[str_range]]
+[%header,%autowidth]
+|===
+|Schema attribute |length uint8 |length uint16
+
+|minValue
+|0
+|0
+
+|maxValue
+|254
+|65534
+
+|===
+
+.Data encoding
+[[data_enc]]
+[%header,%autowidth]
+|===
+|FIX data type |Description |Backing primitives |Length (octets) |Required schema attribute
+
+|data
+|octet array
+|Array of uint8 of specified length.
+|Specified by length attribute
+|length
+
+|===
+
+==== Date and time encoding
+
+===== Epoch
+
+Spline FIX SBE prediction feed uses the standard UNIX epoch, midnight January 1, 1970 UTC.
+
+.Time unit
+[[time_enc]]
+[%header,cols="2,6,2,>1,2"]
+|===
+|FIX data type |Description |Backing primitives |Length (octets) |Schema attributes
+
+|UTCTimestamp (timestampEncoding)
+|UTC date/time Default: nanoseconds since Unix epoch Range Jan. 1, 1970 - July 21, 2554
+|uint64 time
+|8
+|epoch="unix" (default)
+
+|
+|timeUnit = second or millisecond or microsecond or nanosecond, May be constant
+|uint8 unit
+|1
+|
+
+|timestampEncodingMsrb
+|Msrb local time (ET) with minute resolution (no seconds)
+|uint32 time
+|4
+|POSIX time_t 32bits
+
+|
+|timeUnit = minutes. Fixed and not sent on wire
+|uint8 unit
+|0
+|fixed at minute resolution
+
+|===
+
+==== Composite Types
+
+===== Yield Encoding
+
+*semanticType: Yield*
+
+.Yield Encoding
+[[yield_enc]]
+[%header,cols="2,6,2,>1,2"]
+|===
+|FIX data type |Description |Backing primitives |Length (octets) |Schema attributes
+
+|yieldEncoding
+|Represents a yield with up to 3 decimals, and supporting a range of [-32.768, 32.768] inclusive. Uses decimal encoding with mantissa of int16 and a fixed exponent of -3.
+|int16
+|2
+|mantissa=int16, exponent=constant -3
+
+|===
+
+===== Decimal8 Encoding
+
+.Decimal8
+[[decimal8_enc]]
+[%header,cols="2,6,2,>1,2"]
+|===
+|FIX data type |Description |Backing primitives |Length (octets) |Schema attributes
+
+|mantissa
+|
+|int8
+|1
+|
+
+|exponent
+|
+|int8
+|1
+|
+
+
+|===
+
+
+
+===== Muni Curve  
+Represents a full standard Spline Data Muni Curve. A Standard Muni Curve will have Tenors 1 to 30,
+and a corresponding floating point yield for each. For example, where value=Yield:
+
+.Standard Muni Curve
+[%autowidth]
+|===
+|tenor : f64 |value : f64
+
+
+|1.0   |2.631
+|2.0   |2.518
+|3.0   |2.403
+|4.0   |2.286
+|5.0   |2.265
+|6.0   |2.244
+|7.0   |2.234
+|8.0   |2.237
+|9.0   |2.25 
+|10.0  |2.276
+|11.0  |2.32 
+|12.0  |2.383
+|13.0  |2.459
+|14.0  |2.533
+|15.0  |2.591
+|16.0  |2.647
+|17.0  |2.7  
+|18.0  |2.746
+|19.0  |2.79 
+|20.0  |2.833
+|21.0  |2.872
+|22.0  |2.91 
+|23.0  |2.947
+|24.0  |2.984
+|25.0  |3.021
+|26.0  |3.058
+|27.0  |3.095
+|28.0  |3.132
+|29.0  |3.17 
+|30.0  |3.207
+|===
+
+Since there are always 30 tenors in a Standard Spline Muni Curve, they are sent implicitly. Meaning,
+the tenor value for each row is `tenor = float((row_index + 1))`. Yields are sent as a fixed array
+of <<yield_enc>> with `(row_offset + 1)` being their tenor.
+
+[[curve_byte_encoding_label]]
+tag::curve_byte_encoding_tag[]
+.curveEncoding
+[%header,cols="2,3,1,2,5"]
+|===
+|Name |backing primitive |Offset |Length |Notes
+
+|features
+|featuresEncoding
+|0
+|8
+|rating, payment, coupon, size, liquidity
+
+|yield
+|yieldEncoding
+|8
+|30
+|Length here indicates a repetition of the yield field, since the element length is determined by <<yield_enc>>.
+
+|===
+end::curve_byte_encoding_tag[]
+
+
+===== Muni Prediction
+
+Describes a Spline Muni Prediction for a single cusip and contains the following information, cusip,
+bid, mid, and ask yields, and optionally, bid, mid, and ask prices. Rather than use a magic number
+to indicate that a price is optional, Spline indicates optionality using a bitset.
+
+.yieldPredictionEncoding
+[[yield_pred_enc]]
+[%header,cols="2,1,1,1,1,5"]
+|===
+|Name |backing primitive |Offset |Length |Value |semanticType |Enumeration |Notes
+
+|cusip
+|idString
+|0
+|9
+|
+|String
+|
+|
+
+|PricePresenceEnum
+|PricePresence
+|9
+|1
+|
+|MultipleCharValue
+a|
+!====
+!bit !field !bit high if field is active !value of bitset if set individually
+!4   !bid_price !true !8
+!3   !mid_price !true !4
+!2   !ask_price !true !2
+!1   !reserved  !false ! always 0
+!====
+
+.Examples of uint8 PricePresence bitset
+!====
+!binary representation !integer representation !active fields
+
+
+!0000 !0 !None
+!1000 !8 !bid_price
+!0100 !4 !mid_price
+!0010 !2 !ask_price
+!1100 !12 !bid_price, mid_price
+!1010 !10 !bid_price, ask_price
+!0110 !6  !mid_price, ask_price
+!
+
+!====
+
+
+|PricePresenceEnume is a bitset with 0 indicating all prices are optional, and the sum of bits indicating which prices are populated.
+
+|===
+
+<<<
+tag::fix_sofh[]
+=== FIX SOFH: Simple Open Framing Header
+
+Every message begins with a Simple Open Framing Header message from the FIX SOFH specification, followed by
+the message header.
+
+[[fix_header]]
+include::header.adoc[tag=header_sofh_body]
+
+<<<
+.Simple Open Framing Header
+[%header,%autowidth]
+|===
+|Name |Offset |Length |Value |Notes
+
+|Message_Length
+|0
+|4 bytes
+|
+|Represents the length of the full message INCLUSIVE of SOFH.
+
+|Encoding_Type
+|4
+|2 bytes
+|0xEB50
+|FIX SBE Version 1.0 Little Endian
+
+|===
+end::fix_sofh[]
+
+
+tag::sbe_message_encoding_header[]
+=== SBE Message Encoding Header
+
+As stated in FIX SBE:
+[quote, FIX SBE v2.0rc2]
+"The purpose of the message encoding header is to tell which message template was used
+to encode the message and to give information about the size of the message body to aid in decoding, even
+when a message template has been extended in a later version."
+
+The fields of the Spline FIX SBE predictions message header are:
+
+* *Block length of the message root* - the total space reserved for the root level of the message not counting any repeating groups
+* *Template ID* - identifier of the message template. aka: Message ID
+* *Schema ID* - Identifier of the message schema that contains the template_id. Essentially a namespace for template_id.
+* *Schema version* - the version of the message schema in which the message defined.
+* *Group count* - the number of repeating groups in the root level of the message.
+
+<<<
+[[spline_message_header_table_label]]
+tag::spline_message_header_table_tag[]
+.messageHeader
+[%header,cols="2,2,1,2,1,5"]
+|===
+|Name |backing primitive |Offset |Length |Value |Notes
+
+|blockLength
+|uint16
+|0
+|2 bytes
+|
+|Represents the length of the root of the message that follows; includes message fields excluding groups.
+
+|templateId
+|uint8
+|2
+|1 byte
+|
+|Template id (message id) from schemaId at versionId.
+
+|schemaId
+|uint8
+|3
+|1 byte
+|42 or 0x2a
+|unique identifier among all counterparties in this feed. As this is a Splinq data only feed, 
+
+|version
+|uint8
+|4
+|1 byte
+|
+|Version of this specification that the templateId supports. Starts at 0 for the first version, and increases by 1.
+
+|numGroups
+|uint8
+|5
+|1 byte
+|
+|How many groups follow the message header. In other words, if set to 0, the struct matching the templateId may be overlaid directly on the data that follows. If numGroups > 0, then a group structure must be overlaid to identify how many elements exist.
+
+|===
+end::spline_message_header_table_tag[]
+end::sbe_message_encoding_header[]
+
+tag::sbe_message_body[]
+=== SBE Message Body
+
+The message body conveys the business information of the message and has the following attributes:
+
+* Data only on the wire; without delimiters or metadata, such as tags.
+* Access to data is positional, guided by a message schema that specifies a message type.
+
+SBE has two features to control alignment of message elements:
+
+* The length of a block is controlled with the blockLength attribute of a message or group. When applied to a message,
+it controls the length of the root level of the message, prior to any repeating groups.
+When applied to a group, it controls the length of each entry of the repeating group. The blockLength attribute is not
+required. By default, the length of a block is the sum of its field lengths. When specified, it must be at least that
+much, but may be greater. When greater than the field lengths, the extra space resides at the end of the block.
+* The position of an individual field can be controlled with the offset attribute. Since individual field alignment is
+not considered crucial, this field attribute is optional. When not specified, the field is packed to the previous field
+without padding.
+end::sbe_message_body[]
+
+tag::spline_group_size_encoding_simple[]
+=== Spline Group Size Encoding Simple
+
+When one or more groups are indicated by the SBE Header, this template is used to ascertain the size and number of
+items that follow. Group encoding is designed in such a way that even if the preceeding templateId is not
+understood by the processing codec it may still be skipped using the group information. Spline's
+_groupSizeEncodingSimple_ differs from the suggested SBE groupSizeEncoding in that it will only every
+have a single group and does not support variable length fields. This allows easier direct access to
+fields, elements of the group, and an is simpler to decode.
+
+end::spline_group_size_encoding_simple[]
+
+[[group_size_encoding_table_label]]
+tag::spline_group_size_encoding_simple[]
+tag::group_size_encoding_simple_table[]
+.groupSizeEncodingSimple
+[%header,cols="3,2,2,2,2,6"]
+|===
+|Name |backing primitive |Offset |Length |Value |Notes
+
+|blockLength
+|uint16
+|0
+|2 bytes
+|
+|Represents the length of the root block single item in the group. Ex: If this was representing a message (itself containing no groups) of length 68, blockLength would be 68. If the messages that follow DO contain groups, then blockLength only contains the length up to, but NOT including the groups. 
+
+|numInGroup
+|uint16
+|2
+|2 bytes
+|
+a|
+Represents the number of elements contained in the following group. If the following objects do not contain groups, the length of the message data folowing the groupsSizeEncodingSimple message would be block_length * numInGroup.
+
+* minValue=1
+* maxValue=65536
+
+|===
+
+end::group_size_encoding_simple_table[]
+end::spline_group_size_encoding_simple[]
+
+
+=== Muni Curve Update
+
+*templateId = 1, schemaId=42, version=0*
+
+Spline Muni Curve Update message represents one or more Spline curve predictions.
+Data is led by identifying information shared by all curves in the group:
+
+* the datetime of the curve interval using ET timezone. Example: April 2, 2024 10:35 (ET)
+l
+* group of curves occuring in the time interval identified above.
+
+[NOTE]
+.Repeating Groups
+====
+A leading '>' on a row indicates that the element is part of a repeating group
+====
+
+.MuniCurveUpdate
+[%header,cols="2,1,3,1,1,5,2,5"]
+|===
+|Name |field id |type |semanticType |offset |length |blockLength |Notes
+
+|IntervalTimestamp
+|1
+|timestampEncodingMsrb
+|LocalMktDate
+|0
+|4
+|4
+|
+
+|CurveGroup
+|2
+|groupSizeEncodingSimple
+|
+|4
+|
+|68
+a|
+* minValue=1
+* maxValue=65536
+
+|> Curve
+|3
+|<<curve_enc>>
+|
+|align=4
+|
+|68
+|The length of the actual data is 68, with alignment of 4 the typical effective length is 72.
+
+|===
+
+=== Muni Prediction Update
+
+*templateId = 2, schemaId=42, version=0*
+
+
+Spline Muni Prediction Update message represents one or more per cusip Spline predictions containing
+yield and optionally, price.
+
+All predictions in a Prediction message will share the same datetime interval.
+
+
+[NOTE]
+.Repeating Groups
+====
+A leading '>' on a row indicates that the element is part of a repeating group
+====
+
+.MuniYieldPredictionUpdate
+[[yield_pred_update_enc]]
+[%header,cols="3,1,3,3,1,1,5"]
+|===
+|Name |field id |type |semanticType |offset |length |Notes
+
+|IntervalTimestamp
+|1
+|timestampEncodingMsrb
+|LocalMktDate
+|0
+|4
+|
+
+|PredictionGroup
+|2
+a|<<group_dim_enc>>
+|
+|4
+|4
+|
+
+|> yieldPrediction
+|3
+|<<yield_pred_enc>>
+|
+|align=4
+|30
+|The length of the actual data is 30, with alignment of 4 the effective length is 32.
+
+|===
+
+
+
+
+tag::simple_binary_encoding_major[]
+== SPDP 1.0 - Simple Binary Encoding
+
+SPDP 1.0 uses compact FIX Simple Binary Encoding (SBE) optimized for low latency (efficient)
+encoding and decoding, while also minimal bandwith utilization. Concise message sizes
+are used without the need for compression. FIX SBE v2.0 RC2 has been used, with the following
+deviations from the recommended encodings:
+
+=== Binary Type System
+
+To support traditional FIX semantics, all documented field types are supported.
+The binary type system binds to native binary data types, and defines derived types
+as needed.
+
+The binary type system has been enhanced to:
+
+	* Provide concise messages that take advantage of the data domain.
+	* Differentiate fixed-length character arrays from variable-length data.
+	* Provide a domain specific system of enumerations, and Boolean indicators.
+	* Avoids use of "magic" numbers to represent Null numeric data fields.
+	
+
+=== Binary Encoding
+
+Binary encoding provides direct data access without complex transformations of conditional logic by:
+	* Usage of native binary data types and simple types derived from native binaries, such as prices and timestamps.
+	* Fixed position and fixed length fields, supporting direct access to data.
+	* Where possible, data is byte aligned to it's largest data type, to facilitate direct access to the data.
+	
+SplinePDP supports the
+https://www.fixtrading.org/standards/sbe-online/[Simple Binary Encoding Specification 2.0 release candidate 4]
+
+IMPORTANT: Users must be registered with FIX Protocol Organization to access the Simple Binary Encoding Documentation
+and will need a User ID provided by FPL to logon to the site.
+
+The default/standard data ranges and null indicator are listed below for each integer encoding.
+NOTE: SplinePDP does not use the maximum or minimum numbers to represent data: any optional fields will be preceded
+by a bitfield indicating optionality.
+
+.Range attributes for integer fields
+[[int_range_attr]]
+[%header,%autowidth]
+|===
+|Schema attribute |int8 |uint8 |int16 |uint16 |int32 |uint32 |int64 |uint64
+
+|minValue
+|-127
+|0
+|-332767
+|0
+a|-2^31^ + 1
+|0
+a|-2^63^ + 1
+|0
+
+|maxValue
+|127
+|254
+|32767
+|65534
+a|2^31^ - 1
+a|2^32^ - 2
+a|2^63^ - 1
+a|2^64^ - 2
+
+|nullValue
+|-128
+|256
+|-32768
+|65535
+a|-2^31^
+a|2^32^ - 1
+a|-2^63^
+a|2^64^ - 1
+|===
+
+==== Encoding for Null Values
+
+This example is of the optional `price` in the Price/Yield Prediction message.
+
+Example of a byte.
+.Example Byte Layout
+[%header,width=40%,grid="all",cols="1,1,1,1,3,3"]
+|===
+a|2^3^ a|2^2^ a|2^1^ a|2^0^ |int value |hex value
+
+|0 |0 |0 |0 |0 | 0x0
+|0 |0 |0 |1 |1 | 0x1
+|0 |0 |1 |0 |2 | 0x2
+|0 |1 |0 |0 |4 | 0x4
+|1 |0 |0 |0 |8 | 0x8
+|1 |0 |0 |1 |9 | 0x9
+|1 |0 |1 |0 |10 | 0xa
+|1 |1 |0 |0 |12 | 0xc
+|1 |1 |1 |0 |14 | 0xe
+|1 |1 |1 |1 |15 | 0xf
+ 
+|===
+
+
+.Optional indicator booleans for PricePresence
+[[optional_indicator_boolean_example]]
+[%header,%autowidth]
+|===
+|Encoding |Numeric |Presence Indicator a|Example Encoding with Fields
+
+a|
+[source, binary]
+----
+0:0:0:0
+----
+|0
+|No populated Optional fields
+a|
+[source, hexdump]
+----
+0:0000:0000:0000
+----
+
+a|
+[source, binary]
+----
+1:0:0:0
+----
+|8
+|First field populated
+a|
+[source, hexdump]
+8:aaaa:0000:0000
+
+a|
+[s3urce, binary]
+----
+0:1:0:0
+----
+|4
+|Second field populated
+a|
+[source, hexdump]
+4:0000:bbbb:0000
+
+a|
+[s3urce, binary]
+----
+0:0:1:0
+----
+|2
+|Third field populated
+a|
+[source, hexdump]
+2:0000:0000:cccc
+
+a|
+[s3urce, binary]
+----
+1:1:1:0
+----
+|13 or 0xd
+|All three fields populated
+a|
+[source, hexdump]
+d:aaaa:bbbb:cccc
+
+a|
+[s3urce, binary]
+----
+1:0:1:0
+----
+|10 or 0xa
+|First and last of three fields populated
+a|
+[source, hexdump]
+a:aaaa:0000:cccc
+
+|===
+
+
+<<<
+==== SplinePDP SBE Extended and Composite Types
+
+In addition to the FIX SBE v2.0 types, SplinePDP SBE includes types that are specific to the data domain for the messages being sent.
+
+.SplinePDP Additional Types
+[%header,cols="2,1,4,3"]
+|===
+|Type name | Primitive Type | Description | Notes
+|u8Bitset | uint8 ||
+|intPercentage | uint8 | 0 to 100 inclusive |
+|enumEncoding | char ||
+|intEnumEncoding | uint8 ||
+|ratingString | char | length=4 characterEncoding="ISO_8859_1" semanticType="CreditRating" | ISO_8859_1 aka "latin-1"
+|idString | char | length=9  characterEncoding="ISO_8859_1" semanticType="SecurityID" | ISO_8859_1 aka "latin-1"
+|uuid | char | length=16  characterEncoding="ISO_8859_1" semanticType="SessionID" | ISO_8859_1 aka "latin-1"
+
+
+|===
+
+.SplinePDP Enumerations
+[%header,%autowidth]
+|===
+|Enum name | Encoding Type | Valid Values | Notes
+
+|TimeUnit
+|uint8
+a|
+[%header,cols="3,1"]
+!===
+!Value name ! value
+!second ! 0
+!millisecond ! 3
+!microsecond ! 6
+!nanosecond ! 9
+!===
+|
+
+|MuniPaymentEnum
+|intEnumEncoding
+a|
+[%header,%autowidth]
+!===
+!Value name ! value
+!go! 0
+!rev ! 1
+!===
+|
+
+|MuniSizeEnum
+|intEnumEncoding
+a|
+[%header,%autowidth]
+!===
+!Value name ! value
+!sml! 0
+!med! 1
+!lrg! 1
+!===
+|
+
+|MuniLiquidity
+|intEnumEncoding
+a|
+[%header,%autowidth]
+!===
+!Value name ! value
+!ilqd! 0
+!lqd! 2
+!===
+|
+
+|PricePresenceEnum
+|u8Bitset
+a|
+[%header,%autowidth]
+!===
+!Value name ! value
+!None! 0
+!ask_price! 2
+!mid_price! 4
+!bid_price! 8
+!===
+|
+
+|===
+
+.SplinePDP Composite Types
+tag::curve_encoding_table[]
+tag::yield_encoding_table_tag[]
+tag::opaque_data_table_tag[]
+[%header,cols="3,7,2,2"]
+|===
+|Type name | Composite Types | Description | Notes
+end::curve_encoding_table[]
+end::yield_encoding_table_tag[]
+end::opaque_data_table_tag[]
+
+|timestampEncodingMsrb
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Reference Name ! Notes
+! time ! uint32 !
+! unit ! uint8 ! presence="constant" valueRef="TimeUnit.second"
+!===
+| ET timestamp with second precision. Equivalent to POSIX time_t 32bits
+|
+
+|featuresEncoding
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Reference Name ! Notes
+! rating ! ratingString ! alignment=4 semanticType=`String`
+! payment ! MuniPaymentEnum !
+! coupon ! intPercentage
+! size ! MuniSizeEnum
+! liquidity ! MuniLiquidity
+!===
+| Bond features describing curves. Specifically, Rating, Payment, Coupon, Size, Liquidity
+|
+
+|groupSizeEncodingSimple
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Primitive Type ! Notes
+! blockLength! uint16!
+! numInGroup ! uint16!
+!===
+|
+a| NOTE: SplinePDP does not use multiple groups in messages, thus the standard "numGroups" field is absent.
+
+
+|[[yield_encoding]] yieldEncoding
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Primitive Type ! Notes
+! mantissa! int16!
+! exponent ! int8 ! presence="constant" constant_value="-3"
+!===
+| SemanticType="Yield"
+| Yield represented as a 16 bit unsigned integer divided by 1,000
+
+
+[[curve_encoding]]
+tag::curve_encoding_table[]
+| curveEncoding
+a|
+[%header,cols="3,3,2"]
+!===
+! Type name ! Type ! Notes
+! curveFeatures! featuresEncoding !
+! yield ! yieldEncoding ! length=30
+
+Fixed length array of 30 yield values where index+1=tenor in years
+!===
+| Munis yield curve for tenors 1 to 30
+|
+end::curve_encoding_table[]
+
+|decimal8
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Primitive Type ! Notes
+! mantissa! int8!
+! exponent! int8!
+!===
+| Predictions for individual munis and par traded bucket. May also include price predictions.
+|
+
+|decimal32fn3
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Primitive Type ! Notes
+! mantissa! int32!
+! exponent! int8! presence="constant" value=-3
+!===
+| 
+| NOTE: constant exponent is never sent on the wire.
+
+[[yield_encoding_table_label]]
+tag::yield_encoding_table_tag[]
+|yieldPredictionEncoding
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Type ! Notes
+! cusip ! idString ! semanticType=String
+! parTradedBucket ! decimal8!
+! PricePresence ! PricePresenceEnum ! semanticType="MultipleCharValue" Bitset describing optionality of prices.
+! bidYield ! yieldEncoding ! Fixed decimal prediction of yield, bid side.
+! midYield ! yieldEncoding ! Fixed decimal prediction of yield, midpoint.
+! askYield ! yieldEncoding ! Fixed decimal prediction of yield, ask side.
+! bidPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+! midPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+! askPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+!===
+| Predictions for individual munis and par traded bucket. May also include price predictions.
+|
+end::yield_encoding_table_tag[]
+
+[[opaque_data_table_label]]
+tag::opaque_data_table_tag[]
+|DATA
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Primitive Type ! Notes
+! length! uint16!
+! varData !uint8 ! 
+!===
+| variable length data align=4
+a|
+NOTE: Variable length data is achieved by creating a group after a message
+containing a blockLength=1 and numInGroup of the length in bytes of the data.
+end::opaque_data_table_tag[]
+
+
+
+[[negotiate_encoding_table_label]]
+tag::negotiate_encoding_table_tag[]
+|NegotiateEncoding
+a|
+[%header,cols="1,1,2"]
+!===
+! Type name ! Type ! Notes
+! cusip ! idString ! semanticType=String
+! parTradedBucket ! decimal8!
+! PricePresence ! PricePresenceEnum ! semanticType="MultipleCharValue" Bitset describing optionality of prices.
+! bidYield ! yieldEncoding ! Fixed decimal prediction of yield, bid side.
+! midYield ! yieldEncoding ! Fixed decimal prediction of yield, midpoint.
+! askYield ! yieldEncoding ! Fixed decimal prediction of yield, ask side.
+! bidPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+! midPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+! askPrice ! decimal8 ! 8 bit mantissa, 8 bit exp"
+!===
+| Predictions for individual munis and par traded bucket. May also include price predictions.
+|
+end::yield_encoding_table_tag[]
+
+
+
+
+
+
+
+tag::curve_encoding_table[]
+tag::yield_encoding_table_tag[]
+tag::opaque_data_table_tag[]
+|===
+end::curve_encoding_table[]
+end::yield_encoding_table_tag[]
+tag::opaque_data_table_tag[]
+
+
+==== Fixed Length Strings with Null termination.
+
+There are encodings where the maximum length of a string is known,
+but it is possible for strings represented to be of a shorter length.
+When this occurs, the string will simply be terminated by a null character.
+
+CAUTION: When all bytes of a fixed length string are in use the terminating null will be implicit.
+
+.String Null as Terminating Byte
+[%header,%autowidth]
+|===
+|Encoding |String a|Example Encoding
+|String | byte 0 (character '\0') | "AA\0\0"
+
+|===
+
+For example:
+`idString` is a fixed length string of 9 octets which will hold cusips, which are always 9 characters in length and will NOT have a terminating Null.
+`ratingString` is a fixed length string of 4 octets which may contain strings of up to 4 octets. When shorter than 4 octets, will be null terminated.
+
+[source,xml]
+----
+include::splinepdp.xml[tag=string_null_encoding]
+----
+
+`idString` will NEVER have a terminating Null.
+`ratingString` of `b"AAA+"` will NOT have a terminating Null.
+`ratingString` of `b"B\0"`  MUST have a terminating Null.
+
+end::simple_binary_encoding_major[]
+

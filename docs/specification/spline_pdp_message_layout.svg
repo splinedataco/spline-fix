@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="-604 -540 2827 492" width="2827" height="492">
+  <defs/>
+  <g id="Canvas_1" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1" stroke-opacity="1">
+    <title>Canvas 1</title>
+    <g id="Canvas_1_Background">
+      <title>Background</title>
+      <g id="Graphic_54">
+        <rect x="-603" y="-530" width="2825" height="455.49" fill="white"/>
+        <rect x="-603" y="-530" width="2825" height="455.49" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+    </g>
+    <g id="Canvas_1_SBE_Message">
+      <title>SBE Message</title>
+      <g id="Group_50">
+        <g id="Group_38">
+          <g id="Group_35">
+            <g id="Group_34">
+              <g id="Graphic_29">
+                <rect x="185" y="-407" width="300" height="115" fill="#dead26"/>
+                <rect x="185" y="-407" width="300" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+                <text transform="translate(190 -364.35)" fill="black">
+                  <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="89.7625" y="24" xml:space="preserve">blockLength</tspan>
+                </text>
+              </g>
+              <g id="Graphic_30">
+                <title>Rectangle</title>
+                <rect x="485" y="-407" width="150" height="115" fill="#dead26"/>
+                <rect x="485" y="-407" width="150" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+                <text transform="translate(490 -364.35)" fill="black">
+                  <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="10.4875" y="24" xml:space="preserve">templateId</tspan>
+                </text>
+              </g>
+              <g id="Graphic_31">
+                <title>Rectangle</title>
+                <rect x="635" y="-407" width="150" height="115" fill="#dead26"/>
+                <rect x="635" y="-407" width="150" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+                <text transform="translate(640 -364.35)" fill="black">
+                  <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="15.35" y="24" xml:space="preserve">schemaId</tspan>
+                </text>
+              </g>
+              <g id="Graphic_32">
+                <title>Rectangle</title>
+                <rect x="785" y="-407" width="150" height="115" fill="#dead26"/>
+                <rect x="785" y="-407" width="150" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+                <text transform="translate(790 -364.35)" fill="black">
+                  <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="29.725" y="24" xml:space="preserve">version</tspan>
+                </text>
+              </g>
+              <g id="Graphic_33">
+                <rect x="935" y="-407" width="150" height="115" fill="#dead26"/>
+                <rect x="935" y="-407" width="150" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+                <text transform="translate(940 -364.35)" fill="black">
+                  <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="4.225" y="24" xml:space="preserve">numGroups</tspan>
+                </text>
+              </g>
+            </g>
+          </g>
+          <g id="Line_36">
+            <path d="M 333.0621 -292.71846 L 332.8916 -219.27407 C 332.85956 -205.467 344.02643 -194.24816 357.8335 -194.2161 C 357.86926 -194.21603 357.905 -194.21602 357.94076 -194.2161 L 984.8967 -195.45026 C 998.7038 -195.47744 1009.8746 -206.69233 1009.8474 -220.49942 C 1009.8473 -220.58894 1009.8466 -220.67847 1009.8455 -220.76798 L 1008.9303 -292.75616" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          </g>
+          <g id="Graphic_37">
+            <rect x="591.7114" y="-214.67098" width="147.025" height="39.699997" fill="white"/>
+            <text transform="translate(596.7114 -209.67098)" fill="black">
+              <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="7247536e-19" y="24" xml:space="preserve">SBE Header</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Group_39">
+          <g id="Group_11">
+            <g id="Graphic_13">
+              <rect x="-603" y="-406.69817" width="450.4001" height="114.69817" fill="#ccc"/>
+              <rect x="-603" y="-406.69817" width="450.4001" height="114.69817" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(-598 -364.1991)" fill="black">
+                <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="142.43754" y="24" xml:space="preserve">Message Size</tspan>
+              </text>
+            </g>
+            <g id="Graphic_12">
+              <rect x="-152.59991" y="-406.69817" width="337.1999" height="114.69817" fill="#ccc"/>
+              <rect x="-152.59991" y="-406.69817" width="337.1999" height="114.69817" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(-147.59991 -364.1991)" fill="black">
+                <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="81.17496" y="24" xml:space="preserve">Encoding Type</tspan>
+              </text>
+            </g>
+          </g>
+          <g id="Line_22">
+            <path d="M -521.809 -407.69817 L -520.9494 -495.2451 C -520.8148 -508.95593 -509.6618 -519.99985 -495.9503 -519.99965 L 17.967957 -519.99246 C 31.70223 -519.99226 42.864553 -508.9127 42.966913 -495.1788 L 43.618914 -407.69817" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          </g>
+          <g id="Graphic_24">
+            <rect x="-292.1303" y="-539.84625" width="77.6" height="39.699997" fill="white"/>
+            <text transform="translate(-287.1303 -534.84625)" fill="black">
+              <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="0" y="24" xml:space="preserve">SOFH</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Graphic_40">
+          <rect x="1085" y="-407" width="1137" height="115" fill="#3a8eed"/>
+          <rect x="1085" y="-407" width="1137" height="115" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(1090 -364.35)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="485.025" y="24" xml:space="preserve">SBE Message</tspan>
+          </text>
+        </g>
+        <g id="Line_42">
+          <path d="M -396.67026 -291 L -396.0763 -97.81997 C -396.0341 -84.08338 -384.91667 -72.95403 -371.18013 -72.89705 L 1626.4549 -64.61102 C 1640.2619 -64.55375 1651.501 -75.70011 1651.5583 -89.50711 C 1651.5586 -89.57699 1651.5586 -89.64687 1651.5583 -89.71676 L 1650.701 -292" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_43">
+          <rect x="489.9334" y="-88.66762" width="244.75" height="39.699997" fill="white"/>
+          <text transform="translate(494.9334 -83.66762)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="25" fill="black" x="0" y="24" xml:space="preserve">Spline PDP Message</tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,148 @@
+== Message Header
+
+=== SOFH - Simple Open Framing Header
+
+tag::header_sofh_body[]
+https://www.fixtrading.org/standards[FIX.org] has a standard for how to
+delimit multiple messages when using a stream based transport
+such as TCP/IP. When using a framed transport such as UDP or SCTP, then
+this is unnecessary as the individual messages provide their own delimiters.
+
+The https://www.fixtrading.org/standards/fix-sofh-online/[SOFH online]
+spec is short, it defines 2 fields that provide byte encoding information
+and size of the proceeding message to allow for framing.
+
+The Spline FIX protocol uses this, will be sending messages in Little Endian.
+As such:
+
+[source,xml]
+----
+include::splinepdp.xml[tag=sbe_header]
+----
+
+When reading the direct binary, the first 4 octets(bytes) will indicate the length
+of the message, and the proceeding 2 bytes are a special marker indicating the encoding
+of the following message.
+[sidebar]
+****
+The SOFH leading with the size allows a codex to skip messages whose encoding it may not support.
+****
+NOTE: The SOFH standard specifies that the SOFH(length,encoding) will always be in network byte order [big endian],
+while SBE-LE 0xEB50 specifies that the header and the body of the message are in little endian.
+
+
+4 octets allows for message sizes of up to 2^32 bytes in length. Though, messages
+are suggested to be kept smaller than a MTU to avoid fragmentation when used with
+non-streaming transport layers.
+end::header_sofh_body[]
+
+
+[[sofh_table_ref]]
+tag::sofh_table_tag[]
+[%header,%autowidth]
+|===
+|Wire Format |Name |Offset |Length |Interpreted Value
+
+a|
+[,hex]
+----
+0000002a
+----
+
+|Message_Length field
+|0
+|4
+|42
+
+a|
+[,hex]
+----
+eb50
+----
+
+|Encoding_Type field
+|4
+|2
+a|0xEB50 https://www.fixtrading.org/standards/fix-sofh-online/[SBE Little Endian v1.0]
+
+|===
+
+end::sofh_table_tag[]
+
+tag::sbe_header_short[]
+[[sbe_header_short]]
+[%header,cols="3,4,2,2,3,8"]
+|===
+|Wire Format |Name |Offset |Length |Interpreted value |Notes
+a|
+[source, hexdump]
+----
+0400
+----
+
+|SBE root block length
+|0
+|2
+|4
+a| NOTE: Offset restarts from beginning of header.
+
+
+NOTE: root block is only the fixed size of the message and does not include
+the length of any groups.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|SBE template ID
+|2
+|1
+|1
+a|NOTE: template ID is equivalent to message id or tag 35 in FIX tagvalue format.
+
+NOTE: 1 is part of an enumeration where 1 = Curve
+
+a|
+[source, hexdump]
+----
+2a
+----
+
+|SBE schema ID
+|3
+|1
+|42
+a|NOTE: This is a unique number in the set of Spline FIX schemas that contains the application
+level messages for SplinePDP.
+
+
+a|
+[source, hexdump]
+----
+00
+----
+
+|SBE schema version
+|4
+|1
+|0
+a| Version 0 (the first version) of the SplinePDP Schema, numbered 42.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|No. of groups
+|5
+|1
+|1
+|There is one group in this message which contains a single Curve.
+
+|===
+end::sbe_header_short[]
+
+

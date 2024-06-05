@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--tag::sbe_header[] -->
+<!--tag::sbe_message_example[] -->
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2017/sbe" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" package="Examples" id="91" version="0" byteOrder="littleEndian" xsi:schemaLocation="http://fixprotocol.io/2017/sbe sbe-2.0rc2.xsd">
+<!--end::sbe_header[] -->
+<!--tag::curves_fix_types[] -->
+<!--tag::sbe_header[] -->
+<!--tag::string_null_encoding[] -->
+    <types>
+<!--end::sbe_message_example[] -->
+<!--end::string_null_encoding[] -->
+<!--end::sbe_header[] -->
+        <type name="date" primitiveType="uint16"/>
+        <type name="enumEncoding" primitiveType="char"/>
+        <!--fixtag=SecurityID<48> with SecurityIDSource<22>=1 CUSIP -->
+        <!--tag::string_null_encoding[] -->
+        <type name="idString" length="9" primitiveType="char" characterEncoding="ISO_8859_1" semanticType="SecurityID"/>
+        <!--end::string_null_encoding[] -->
+        <!--tag::uuid_encoding[] -->
+        <type name="uuid" length="16" primitiveType="char" characterEncoding="ISO_8859_1" />
+        <!--end::uuid_encoding[] -->
+        <!--CreditRating<255> type=String used in Instruments <Instrument> componenet block -->
+        <!--167 SecurityType type=String GO=General Obligation Bonds REV=Revenue Bonds TAXA=Tax Allocation VRDN=Variable Rate Demand Note -->
+        <!--tag::string_null_encoding[] -->
+        <!--tag::sbe_message_example[] -->
+        <type name="ratingString" length="4" primitiveType="char" characterEncoding="ISO_8859_1" semanticType="CreditRating"/>
+        <!--end::string_null_encoding[] -->
+        <type name="intEnumEncoding" primitiveType="uint8"/>
+        <type name="intPercentage" primitiveType="uint8" description="0 to 100 inclusive"/>
+        <!--end::sbe_message_example[] -->
+        <type name="u8Bitset" primitiveType="uint8"/>
+        <composite name="UTCTimestamp">
+          <type name=UTCTimestamp" primitiveType="uint64"/>
+          <type name="unit" primitiveType="uint8" presence="optional" valueRef="TimeUnit.nanosecond"/>
+        </composite>
+        <!--tag::data_array_encoding[] -->
+        <composite name="DATA">
+            <type name="length" primitiveType="uint16"/>
+            <type name="varData" length="0" primitiveType="uint8"/>
+        </composite>
+        <!--end::data_array_encoding[] -->
+        <composite name="groupSizeEncodingSimple">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="numInGroup" primitiveType="uint16"/>
+        </composite>
+        <!--tag::sbe_header[] -->
+        <composite name="messageHeader">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint8"/>
+            <type name="schemaId" primitiveType="uint8"/>
+            <type name="version" primitiveType="uint8"/>
+            <type name="numGroups" primitiveType="uint8"/>
+        </composite>
+        <!--end::sbe_header[] -->
+        <!--tag::fixed32_decimal_encoding[] -->
+        <composite name="decimal32fn3">
+            <type name="mantissa" presence="optional" primitiveType="int32"/>
+            <type name="exponent" presence="constant" primitiveType="int8">-3</type>
+        </composite>
+        <!--end::fixed32_decimal_encoding[] -->
+        <!--tag::fixed8f_decimal_encoding[] -->
+        <composite name="decimal8">
+            <type name="mantissa" primitiveType="int8" />
+            <type name="exponent" primitiveType="int8" />
+        </composite>
+        <!--end::fixed8f_decimal_encoding[] -->
+        <!--tag::fixed16f_decimal_encoding[] -->
+        <composite name="decimal16">
+            <type name="mantissa" primitiveType="int16" />
+            <type name="exponent" primitiveType="int8" />
+        </composite>
+        <!--end::fixed16f_decimal_encoding[] -->
+        <composite name="qtyEncoding">
+            <type name="mantissa" primitiveType="int32"/>
+            <type name="exponent" presence="constant" primitiveType="int8">0</type>
+        </composite>
+        <!--tag::fixed16_decimal_encoding[] -->
+        <!--tag::sbe_message_example[] -->
+        <composite name="yieldEncoding" semanticType="Yield">
+            <!-- fixtag=236 -->
+            <type name="mantissa" primitiveType="int16"/>
+            <type name="exponent" presence="constant" primitiveType="int8">-3</type>
+        </composite>
+        <!--end::sbe_message_example[] -->
+        <!--end::fixed16_decimal_encoding[] -->
+        <composite name="timestampEncoding" description="UTC timestamp with second precision.">
+            <type name="time" primitiveType="uint64"/>
+            <type name="unit" primitiveType="uint8" presence="constant" valueRef="TimeUnit.nanosecond"/>
+        </composite>
+        <!-- tag::timestamp_encoding_msrb[] -->
+        <composite name="timestampEncodingMsrb" description="ET timestamp with second precision. time_t 32bits">
+            <type name="time" primitiveType="uint32"/>
+            <type name="unit" primitiveType="uint8" presence="constant" valueRef="TimeUnit.second"/>
+        </composite>
+        <!-- end::timestamp_encoding_msrb[]-->
+        <!-- tag::timeunit_encoding[] -->
+        <!--tag::sbe_message_example[] -->
+        <enum name="TimeUnit" encodingType="uint8">
+            <validValue name="second">0</validValue>
+            <validValue name="millisecond">3</validValue>
+            <validValue name="microsecond">6</validValue>
+            <validValue name="nanosecond">9</validValue>
+        </enum>
+        <!-- end::timeunit_encoding[] -->
+        <enum name="MuniPaymentEnum" encodingType="intEnumEncoding">
+            <validValue name="go">0</validValue>
+            <validValue name="rev">1</validValue>
+        </enum>
+        <enum name="MuniSizeEnum" encodingType="intEnumEncoding">
+            <validValue name="sml">0</validValue>
+            <validValue name="med">1</validValue>
+            <validValue name="lrg">2</validValue>
+        </enum>
+        <enum name="MuniLiquidity" encodingType="intEnumEncoding">
+            <validValue name="ilqd">0</validValue>
+            <validValue name="lqd">2</validValue>
+        </enum>
+        <!--end::sbe_message_example[] -->
+        <set name="PricePresenceBitset" encodingType="u8Bitset">
+            <choice name="None">0</choice>
+            <choice name="ask_price">2</choice>
+            <choice name="mid_price">4</choice>
+            <choice name="bid_price">8</choice>
+        </set>
+        <!--tag::sbe_message_example[] -->
+        <composite name="featuresEncoding" description="Bond features describing curves">
+            <ref name="rating" type="ratingString" alignment="4" semanticType="String" />
+            <ref name="payment" type="MuniPaymentEnum" />
+            <ref name="coupon" type="intPercentage" />
+            <ref name="size" type="MuniSizeEnum" />
+            <ref name="liquidity" type="MuniLiquidity" />
+        </composite>
+        <composite name="curveEncoding" description="Munis yield curve for tenors 1 to 30.">
+            <ref name="curveFeatures" type="featuresEncoding" />
+            <ref name="yield" type="yieldEncoding" length="30" description="Fixed length array of yield values where index+1=tenor in years."/>
+        </composite>
+        <!--end::sbe_message_example[] -->
+        <composite name="yieldPredictionEncoding" description="Predictions for individual munis and par traded bucket. May also include price predictions."/>
+            <ref name="cusip" type="idString" semanticType="String" />
+            <ref name="PricePresence" type="PricePresenceBitset" semanticType="MultipleCharValue" description="Bitset describing optionality of prices. Sum may represent multiples. Example: 0 = no prices, 8=bid_price only, 12=both bid and mid prices." />
+            <ref name="parTradedBucket" type="decimal8" description="" />
+            <ref name="bidYield" type="yieldEncoding" description="Fixed decimal prediction of yield, bid side." />
+            <ref name="midYield" type="yieldEncoding" description="Fixed decimal prediction of yield, midpoint." />
+            <ref name="askYield" type="yieldEncoding" description="Fixed decimal prediction of yield, ask side." />
+            <ref name="bidPrice" type="decimal8" description="8 bit mantissa, 8 bit exp" />
+            <ref name="midPrice" type="decimal8" description="8 bit mantissa, 8 bit exp" />
+            <ref name="askPrice" type="decimal8" description="8 bit mantissa, 8 bit exp" />
+        </composite>
+    <!--tag::string_null_encoding[] -->
+    <!--tag::sbe_message_example[] -->
+    </types>
+    <!--end::string_null_encoding[] -->
+    <messages>
+        <sbe:message name="MuniCurveUpdate" id="1" blockLength="4">
+            <field name="IntervalTimestamp" type="timestampEncodingMsrb" offset="0" semanticType="LocalMktDate" description="Second resolution timestamp indicating the time of all curves in this message."/>
+            <group name="CurveGroup" blockLength="68" dimensionType="groupSizeEncodingSimple">
+                <field name="Curve" type="curveEncoding" align="4"/>
+            </group> 
+        </sbe:message>
+        <!--end::sbe_message_example[] -->
+        <sbe:message name="MuniYieldPrediction" id="2" blockLength="4">
+            <field name="IntervalTimestamp" type="timestampEncodingMsrb" offset="0" semanticType="LocalMktDate"/>
+            <group name="PredictionGroup" blockLength="32" dimensionType="groupSizeEncodingSimple">
+                <field name="yieldPrediction" type="yieldPredictionEncoding" align="4"/>
+            </group> 
+        </sbe:message>
+    <!--tag::sbe_message_example[] -->
+    </messages>
+</sbe:messageSchema>
+<!--end::sbe_message_example[] -->
+<!--end::curves_fix_types[] -->

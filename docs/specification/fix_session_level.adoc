@@ -1,0 +1,483 @@
+== SPLINEPDP FIXP Session Layer
+
+SplinePDP uses the https://www.fixtrading.org/standards/fixp-online/[FIX Performance Session Layer (FIXP)]
+as the session layer, and is designed to be similar to NASDAQ OMX, i.e. SoupTCP, SoupBinTCP, UFO (UDP for Orders).
+
+SplinePDP is using FIXP Common Features, and will use those same naming conventions.
+
+
+=== SplinePDP FIXP Implementation Details
+
+Implementation Details outline will follow the order of each item as discussed in
+https://www.fixtrading.org/standards/fixp-online/[FIX Performance Session Layer (FIXP)]
+
+
+==== Framing
+
+As SplinePDP is using FIX SOFH to define message boundaries, the SplinePDP
+will use <<fix_sofh>> to also frame Session Layer Messages.
+
+
+==== Message Type Identification
+
+[quote,fixp-online]
+''
+Message types are listed in this document as an enumeration of symbolic names. Each FIX encoding tells how message type identifiers are encoded on the wire.
+''
+
+===== SplinePDP FIXP Enumerations
+
+These are the values that are being used to identify messages in SplinePDP.
+
+In addition, adding the Application Layer Messages, because while they are
+defined in the specification, this is more direct.
+
+[source, python]
+----
+SPLINE_MUNI_DATA_SCHEMA_ID = 42
+SPLINE_FIXP_SESSION_SCHEMA_ID = 0
+SPLINE_MUNI_DATA_SCHEMA_VERSION = 0
+
+
+class FixpMessageType(Enum):
+    Negotiate = 1
+    NegotiationResponse = 2
+    NegotiationReject = 3
+    Establish = 4
+    EstablishmentAck = 5
+    EstablishmentReject = 6
+    Terminate = 7
+    Sequence = 8
+    UnsequencedHeartbeat = 9
+
+class SplineMuniFixType(Enum):
+    Curve = 1
+    Prediction = 2
+
+class FlowTypeEnum(Enum):
+    NONE = 0
+    IDEMPOTENT = 1
+    UNSEQUENCED = 2
+    RECOVERABLE = 3
+----
+
+===== How to Use Definitions to Identify Messages
+
+Same as in the Application Layer Messages, a SplinePDP Session
+Layer Message will begin with a <<fix_sofh, SOFH>> section,
+followed by a header <<include::fixsbe.adoc[tag=sbe_message_encoding_header], SBE Message Header>>,
+and then followed by a Session Layer Message.
+
+An abbreviated view of the <<sbe_message_encoding_header_label>>,
+
+[source, rust]
+----
+struct SplineMessageHeader {
+	blockLength: uint16,
+	templateId:  uint8,
+	schemaId:    uint8,
+	version:     uint8,
+	numGroups:   uint8,
+}
+// sizeof(SplineMessageHeader) = 6
+----
+
+CAUTION: For the data domain, the recommended message header of 12 octets
+was deemed unnecessary. To closer fit the data domain, and reduce unnecessary
+byte bloat, templateId, schemaId, version, and numGroups have been reduced
+from uint16 to uint8. Additonally, numVarDataFields is not included: this
+will be worked around by creating a group of bytes in a message. This both
+addresses Splines requirements, and allows for a reduction in size of 2 bytes
+from every message. 
+
+==== Protocols Layering
+
+SplinePDP will be using https://www.fixtrading.org/standards/fixs/[FIX over TLS (FIXS)]
+for encryption purposes only (no authentication via the TLS layer). Server side certificate
+is issued by Spline Data; there will not be client certificates issued.
+
+
+https://datatracker.ietf.org/doc/html/rfc793[TCP/IP] and related standards will be used 
+as the Transport Layer for point-to-point communication between counterparties.
+
+
+Encoding will be https://www.fixtrading.org/standards/sbe-online/[FIX Simple Binary Encoding (FIX SBE) v2.0RC2],
+as for Application Layer Encoding.
+
+==== Session Identification
+
+[quote,fixp-online]
+''
+Each session must be identified by a unique Session ID encoded as a UUID version 4 (RFC 4122) assigned by the client. The benefit of using an UUID is that it is effortless to allocate in a distributed system. It is also simple and efficient to hash and therefore easy to look up at the endpoints. The downside is a larger size overhead. The identifier however does not appear in the stream except once at the start of each datagram, when using UDP, or when sessions are multiplexed, regardless of the underlying transport that is used. For a non-multiplexed TCP session, the identifier therefore appears only once during the lifetime of the TCP session. A session identifier must be unique, not only amongst currently active sessions, but for all time. Reusing a session ID is a protocol violation.
+''
+
+SplinePDP is using UUIDs to identify sessions; as the SplinePDP is more akin
+to a market data feed, and less an order entry feed, Spline recommends a new
+UUID be used on each connection. On connect and after a session is Established,
+a snapshot of recent data will be sent to counterparty followed by realtime
+changes as they occur.
+
+==== User Identification
+
+[quote,fixp-online]
+''
+FIXP does not dictate the format of user credentials. They are agreed between counterparties and should be documented in rules of engagement. The Credentials field in FIXP is of datatype Object (opaque data) so no restriction on its contents is imposed by the protocol.
+''
+
+SplinePDP uses https://datatracker.ietf.org/doc/html/rfc7519[JSON Web Tokens(JWT)] to authenticate and authorize connections.
+Using credentials obtained through https://splinedata.com[SplineData] and verified at
+https://splinedata.com/api/login[Spline API Login], a JWT will be returned to
+the caller which contains both identity and capabilities granted.
+
+
+Authentication with this token will be done by using this token in the
+Negotiation Message opaque field.
+
+==== Session Lifetime
+
+The logical session will survive only the duration of the tcp connection.
+Reconnections are treated as a new established session and snapshot data
+is sent after the session is in an Established state.
+
+==== Flow Types
+
+[quote,fixp-online]
+--
+Each stream of application messages in one direction on a FIXP session is called a flow. FIXP supports configurable delivery guarantees for each flow. A bidirectional session may have asymmetrical flows.
+
+From highest to lowest delivery guarantee, the flow types are:
+
+* Recoverable: Guarantees exactly-once message delivery. If gaps are detected, then missed messages may be recovered by retransmission.
+* Idempotent: Guarantees at-most-once delivery. If gaps are detected, the sender is notified, but recovery is under control of the application, if it is done at all.
+* Unsequenced: Makes no delivery guarantees (best-effort). This choice is appropriate if guarantees are unnecessary or if recovery is provided at the application layer or through a different communication channel.
+* None: No application messages should be sent in one direction of a session. If ClientFlow is None, then application messages flow only from server to client.
+--
+
+SplinePDP to Client is an Idempotent Flow Type. While data is sent over TCP/IP,
+which ensures order of arrival and reliability of the connection, Application Messages
+do have sequence numbers in this direction that are expected to increase with
+every Application Message sent. Sequence messages will be sent to counterparty during idle
+times to update liveliness state.
+
+Client to SplinePDP is a None Flow Type. The only expected communication in
+this direction are Session Layer Messages. As such, the sequence number will
+not increase in this direction. UnsequencedHeartbeat messages will be used to
+update liveliness state with the counterparty.
+
+==== Multiplexed session considerations
+
+SplinePDP does not support multiplexed sessions, and therefore will not need, or
+honor any Context switch messaging.
+
+==== Point-to-Point Session Protocol
+
+A point-to-point session between the client and server will be established over
+TCP, and supports one client per connection.
+
+==== Session Initiation and Negotiation
+
+FIXP guidelines and messages are followed, with the exception for unsupported FIXP features.
+
+Briefly, session initiation and establishment of the session will be as indicated
+in FIXP. Multiplexing is unsupported, and requests for a multiplexed session will
+result in connection termination. Being an Idempotent data connection, disconnection
+of the tcp session, exchanging Terminate Messages, and FinishedSending messages are
+all handled similarly. This obviates the need for FinishedSending messages, which are
+currently unsupported.
+
+Retransmission is not supported. Should it be necessary to obtain a missed message,
+Spline recommends disconnecting and reconnecting. This will cause a fresh snapshot
+to be sent and further messages may be applied to this.
+
+Historic data is not supported on this feed. SplinePDP will deliver only the most
+recent messages generated, and will keep at least one intervals worth of data
+available in a cache to be used for snapshots.
+
+===== Session Authentication and Authorization
+
+As discussed, SplinePDP uses JWT tokens for the purpose of authentication and authorization
+of data. Tokens issued from http://splinedata.com/api/login[Spline API Login] are valid
+for approximately 24 hours. Tokens may be refreshed at any time by logging into
+the Login service.
+
+As in fixp-online, a Negotiate message is structured as follows. Examples
+will be done from the point of view of client to server, therefore
+in these examples the client will be offering a None Flow Type and
+requesting an Idempotent Flow Type from the server.
+
+.Negotiate Message
+[%header, %autowidth]
+|===
+|Field name |Type |Required |Value |Description
+
+|MessageType |Enum a|[.red]`Y` | Negotiate |
+|SessionId |UUID a|[.red]`Y` | | Session Identifier
+|Timestamp |nanotime |[.red]`Y` | |Time of request
+|ClientFlow |FlowType Enum |[.red]`Y` |FlowTypeEnum.NONE |Type of flow from client to server
+|Credentials |Object |[.red]`Y` | |
+|===
+
+===== Variable Length Data for JWT
+
+SplinePDP message header does not have a variable length field, to work with this we will add 1 group, and the
+group will define `blockLength=1` representing the size of 1 byte, and `numInGroup=len(byte_array)`, any
+padding necessary to align on a 4 byte boundary may be added to the end and included in the numInGroup total.
+
+==== Negotiate Example
+
+include::header.adoc[tag=sofh_table_tag]
+include::fixsbe.adoc[tag=spline_message_header_table_tag]
+include::fixsbe.adoc[tag=group_size_encoding_simple_table]
+
+include::parts_is_parts.adoc[tag=negotiate_message_tag]
+
+[sidebar]
+****
+
+TIP: Suggestions on convertion between nanotime <--> timestamp
+
+[source, rust]
+----
+const NANOSECONDS: f64 = 1_000_000_000f64;
+
+fn as_timestamp(nanotime: u64) -> f64:
+    nanotime as f64 / NANOSECONDS
+----
+
+Converting from datetime to nanotime
+[source, python]
+----
+import datetime as dt
+
+NANOSECONDS = 1_000_000_000
+now_ts: float = dt.datetime.now().timestamp()
+nanotime: int = now_ts * NANOSECONDS
+----
+****
+
+==== Negotiate Update Decoded
+
+[source,hexdump]
+----
+00000000: 0000 0000 0000 0247 eb50 1c00 0100 0001  .......G.P......
+00000010: bafa f656 e266 cc45 8036 7917 cc70 dd29  ...V.f.E.6y..p.)
+00000020: 009c 82dc c584 d217 0000 0000 0100 1b02  ................
+00000030: 6579 4a68 6247 6369 4f69 4a49 557a 4931  eyJhbGciOiJIUzI1
+00000040: 4e69 4973 496e 5235 6343 4936 496b 7058  NiIsInR5cCI6IkpX
+00000050: 5643 4a39 2e65 794a 7962 3278 6c63 7949  VCJ9.eyJyb2xlcyI
+00000060: 3657 794a 4462 335a 6c63 6d46 6e5a 5470  6WyJDb3ZlcmFnZTp
+00000070: 4764 5778 7349 6977 6956 584e 6c63 6a70  GdWxsIiwiVXNlcjp
+00000080: 425a 4731 7062 6949 7349 6c56 7a5a 5849  BZG1pbiIsIlVzZXI
+00000090: 3651 6e56 7a61 5735 6c63 334d 6958 5377  6QnVzaW5lc3MiXSw
+000000a0: 6959 3246 7759 574a 7062 476c 3061 5756  iY2FwYWJpbGl0aWV
+000000b0: 7a49 6a70 6249 6c52 765a 4746 3563 304e  zIjpbIlRvZGF5c0N
+000000c0: 3163 6e5a 6c63 7949 7349 6b46 7362 466c  1cnZlcyIsIkFsbFl
+000000d0: 705a 5778 6b52 6d56 6864 4856 795a 584d  pZWxkRmVhdHVyZXM
+000000e0: 694c 434a 535a 5746 7356 476c 745a 5552  iLCJSZWFsVGltZUR
+000000f0: 6864 4745 694c 434a 4262 4778 5a61 5756  hdGEiLCJBbGxZaWV
+00000100: 735a 454e 7664 5842 7662 6e4d 694c 434a  sZENvdXBvbnMiLCJ
+00000110: 5a61 5756 735a 464a 6c64 6c4e 6c59 3352  ZaWVsZFJldlNlY3R
+00000120: 7663 6e4d 694c 434a 4961 584e 3062 334a  vcnMiLCJIaXN0b3J
+00000130: 7059 304e 3163 6e5a 6c63 7949 7349 6c56  pY0N1cnZlcyIsIlV
+00000140: 7a5a 584a 425a 4731 7062 6949 7349 6b46  zZXJBZG1pbiIsIkF
+00000150: 6a62 4552 6864 4746 4263 476b 694c 434a  jbERhdGFBcGkiLCJ
+00000160: 5163 6d6c 6a5a 5642 795a 5752 7059 3352  QcmljZVByZWRpY3R
+00000170: 7062 3235 7a49 6c30 7349 6d52 6864 4745  pb25zIl0sImRhdGE
+00000180: 694f 6e73 6962 6d46 745a 5349 3649 6c52  iOnsibmFtZSI6IlR
+00000190: 6f59 5752 6b5a 5856 7a49 454e 7664 6d56  oYWRkZXVzIENvdmV
+000001a0: 7964 434a 394c 434a 7059 5851 694f 6a45  ydCJ9LCJpYXQiOjE
+000001b0: 334d 5459 314e 7a6b 324d 6a59 7349 6d56  3MTY1Nzk2MjYsImV
+000001c0: 3463 4349 364d 5463 784e 6a59 784d 7a49  4cCI6MTcxNjYxMzI
+000001d0: 774d 4377 6961 584e 7a49 6a6f 6954 4746  wMCwiaXNzIjoiTGF
+000001e0: 7459 6d52 6849 4546 3164 4767 6751 5642  tYmRhIEF1dGggQVB
+000001f0: 4a49 6977 6963 3356 6949 6a6f 6964 4768  JIiwic3ViIjoidGh
+00000200: 685a 4752 6c64 584e 4163 3342 7361 5735  hZGRldXNAc3BsaW5
+00000210: 6c5a 4746 3059 5335 6a62 3230 6966 512e  lZGF0YS5jb20ifQ.
+00000220: 5972 584e 7054 4a31 3933 7349 5149 4b73  YrXNpTJ193sIQIKs
+00000230: 7763 4438 3870 6761 614e 4d73 4e54 7267  wcD88pgaaNMsNTrg
+00000240: 5676 4336 6554 754e 7858 49              VvC6eTuNxXI
+----
+
+[%header,cols="4,4,2,2,3,8"]
+|===
+|Wire Format |Name |Offset |Length |Interpreted value |Notes
+
+6+^| SOFH message length
+
+a| [source, hexdump]
+----
+00000247
+----
+
+|SOFH message length
+|0
+|4
+|583
+|
+
+a|
+[source, hexdump]
+----
+eb50
+----
+
+|SOFH encoding
+|4
+|2
+|SBE little-endian
+|
+
+6+^| SplinePDP SBE Header
+
+a|
+[source, hexdump]
+----
+1c00
+----
+
+|SBE root block length
+|0
+|2
+|28
+a| NOTE: Offset restarts from beginning of header.
+
+
+NOTE: root block is only the fixed size of the message and does not include
+the length of any groups.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|SBE template ID
+|2
+|1
+|1
+a|NOTE: template ID is equivalent to message id or tag 35 in FIX tagvalue format.
+
+NOTE: schemaId=0 and templateId=1 == Negotiate
+
+a|
+[source, hexdump]
+----
+00
+----
+
+|SBE schema ID
+|3
+|1
+|0
+a|NOTE: This is a unique number in the set of Spline FIX schemas that contains the application
+level messages for SplinePDP.
+
+
+a|
+[source, hexdump]
+----
+00
+----
+
+|SBE schema version
+|4
+|1
+|0
+a| Version 0 (the first version) of the SplinePDP FIXP Schema, numbered 0.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|No. of groups
+|5
+|1
+|1
+|There is one group in this message which contains JWT Credentials.
+
+6+^| SplinePDP FIXP Negotiate
+
+2+|
+3+^| UUID
+|
+
+a|
+[source, hexdump]
+----
+bafa:f656:e266:cc45:8036:7917:cc70:dd29
+----
+|UUID
+|0
+|16
+|'bafaf656-e266-cc45-8036-7917cc70dd29'
+| String16
+
+a|
+[source, hexdump]
+----
+009c:82dc:c584:d217
+----
+|Timestamp
+|16
+|8
+|1716580393324551168
+a|nanotime
+NOTE: `datetime.fromtimestamp(1716580393324551168/1_000_000_000)) == datetime.datetime(2024, 5, 24, 15, 53, 13, 324551)` 
+
+a|
+[source, hexdump]
+----
+00
+----
+|ClientFlow
+|24
+|1
+|FlowTypeEnum.None
+|FlowType Enum
+
+a|
+[source, hexdump]
+----
+00:00:00
+----
+|padding
+|25
+|3
+|0
+|uint8
+
+2+|
+3+^|Credentials
+|
+
+2+|
+3+^| SplinePDP Group Encoding Simple - Representing Opaque Bytes
+a|NOTE: "Simple" omits `No. of Groups` from FIX SBE Group.
+
+a|
+[source, hexdump]
+----
+0100
+----
+|Group block length
+|0
+|2
+|1
+a|NOTE: Length of 1 because each element in the group is one octet.
+
+a|
+[source, hexdump]
+----
+1b02
+----
+|NumInGroup
+|2
+|2
+|539
+a|Number of elements in the group.
+NOTE: Data is a large byte string containing base64 encoded JWT.
+Data has been omitted for brevity.
+
+

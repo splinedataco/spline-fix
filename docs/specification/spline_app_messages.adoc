@@ -1,0 +1,819 @@
+== SplinePDP Application Level Messages
+
+The SplinePDP sends Curve and Prediction updates via SBE messages, defined
+below in detail. SOFH and header are included.
+
+=== SplinePDP Curve Update Message Specification
+
+include::header.adoc[tag=sofh_table_tag]
+include::fixsbe.adoc[tag=spline_message_header_table_tag]
+
+<<<
+
+.MuniCurveUpdate
+[%header,cols="3,2,2,2,2,6"]
+|===
+|Name |type |Offset |Length |Value |Notes
+
+|IntervalTimestamp |timestampEncodingMsrb |0 |4 ||
+
+6+| CurveGroup type=groupSizeEncodingSimple
+
+|blockLength |uint16 |0 |2 |68 | Indicates the size of one curve
+
+|numInGroup |uint16 |2 |2 | |How many curves are in this message. Minimum 1.
+
+6+| repeating Curves, 4 byte aligned type=curveEncoding
+
+|=>
+4+| Features Encoding type=featuresEncoding
+|
+
+|=> rating |ratingString |0|4 | | alignment=4
+
+|=> payment |MuniPaymentEnum |4 |1 | |
+
+|=> coupon |intPercentage |5 |1 | |
+
+|=> size |MuniSizeEnum |6 |1 | |
+
+|=> liquidity |MuniLiquidity |7 |1 | |
+
+|=>
+4+| Curve Yields: array of 30 type=yieldEncoding
+|
+
+|=> value array |array[30*int16] |8 |60 | | array[30] exponent presence=constant value=-3
+
+|
+4+^|=>=> array elements type=yieldEncoding
+|
+
+|=>=> mantissa | int16 |8+(array_pos*2) | 2 | |
+
+|=>=> exponent | int8  |n/a | 1 | -3 a| NOTE: presence="constant" means that the value of `-3` is always used, and thus, never sent on the wire.
+
+4+|Total bytes |68 | NOTE: as 68 is 4 byte aligned, subsequent curves will proceed immediately after byte 68
+|===
+
+<<<
+
+==== Muni Curve  
+
+Represents a full standard Spline Data Muni Curve. A Standard Muni Curve will have Tenors 1 to 30,
+and a corresponding floating point yield for each. For example, where value=Yield:
+.Standard Muni Curve
+[%autowidth]
+|===
+|tenor : f64 |value : f64
+
+|1.0   |2.631
+|2.0   |2.518
+|3.0   |2.403
+|4.0   |2.286
+|5.0   |2.265
+|6.0   |2.244
+|7.0   |2.234
+|8.0   |2.237
+|9.0   |2.25 
+|10.0  |2.276
+|11.0  |2.32 
+|12.0  |2.383
+|13.0  |2.459
+|14.0  |2.533
+|15.0  |2.591
+|16.0  |2.647
+|17.0  |2.7  
+|18.0  |2.746
+|19.0  |2.79 
+|20.0  |2.833
+|21.0  |2.872
+|22.0  |2.91 
+|23.0  |2.947
+|24.0  |2.984
+|25.0  |3.021
+|26.0  |3.058
+|27.0  |3.095
+|28.0  |3.132
+|29.0  |3.17 
+|30.0  |3.207
+|===
+
+
+Since there are always 30 tenors in a Standard Spline Muni Curve, they are sent implicitly. Meaning,
+the tenor value for each row is `tenor = float((row_index + 1))`. Yields are sent as a fixed array
+of <<yield_encoding, yieldEncoding>> with `(row_offset + 1)` being their tenor.
+
+.<<sofh_table_ref, SOFH>>
+include::header.adoc[tag=sofh_table_tag]
+
+.<<spline_message_header_table_label, SplinePDP SBE Message Header>>
+include::fixsbe.adoc[tag=spline_message_header_table_tag]
+
+.<<group_size_encoding_table, groupSizeEncodingSimple>>
+include::fixsbe.adoc[tag=group_size_encoding_simple_table]
+
+.<<curve_encoding, curveEncoding>>
+include::fixsbe.adoc[tag=curve_byte_encoding_tag]
+
+==== Curve Update Decoded
+
+[source,hexdump]
+----
+00000000: 0000 0058 eb50 0400 012a 0001 10ed 5066  ...X.P...*....Pf
+00000010: 4400 0100 6161 0000 0204 0103 060f 890e  D...aa..........
+00000020: 0d0e 8f0d 770d 750d 860d a00d c10d ea0d  ....w.u.........
+00000030: 200e 5f0e ae0e fe0e 3b0f 730f aa0f d70f   ._.....;.s.....
+00000040: fa0f 1a10 3510 4c10 6010 7210 7e10 8b10  ....5.L.`.r.~...
+00000050: 9810 a410 b010 bc10                      ........
+----
+
+[%header,cols="4,4,2,2,3,8"]
+|===
+|Wire Format |Name |Offset |Length |Interpreted value |Notes
+
+6+^| SOFH message length
+
+a| [source, hexdump]
+----
+00000058
+----
+
+|SOFH message length
+|0
+|4
+|88
+|
+
+a|
+[source, hexdump]
+----
+eb50
+----
+
+|SOFH encoding
+|4
+|2
+|SBE little-endian
+|
+
+6+^| SplinePDP SBE Header
+
+a|
+[source, hexdump]
+----
+0400
+----
+
+|SBE root block length
+|0
+|2
+|4
+a| NOTE: Offset restarts from beginning of header.
+
+
+NOTE: root block is only the fixed size of the message and does not include
+the length of any groups.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|SBE template ID
+|2
+|1
+|1
+a|NOTE: template ID is equivalent to message id or tag 35 in FIX tagvalue format.
+
+NOTE: 1 is part of an enumeration where 1 = Curve
+
+a|
+[source, hexdump]
+----
+2a
+----
+
+|SBE schema ID
+|3
+|1
+|42
+a|NOTE: This is a unique number in the set of Spline FIX schemas that contains the application
+level messages for SplinePDP.
+
+
+a|
+[source, hexdump]
+----
+00
+----
+
+|SBE schema version
+|4
+|1
+|0
+a| Version 0 (the first version) of the SplinePDP Schema, numbered 42.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|No. of groups
+|5
+|1
+|1
+|There is one group in this message which contains a single Curve.
+
+6+^| SplinePDP Curve
+
+2+|
+3+^| SplinePDP DateTime
+|
+
+a|
+[source, hexdump]
+----
+10ed5066
+----
+|SplinePDP DateTime
+|0
+|4
+|1716579600
+a|seconds past Unix EPOCH. As a datetime: `2024-05-24T24:15.40`
+
+
+NOTE: SplinePDP name for this complex type: timestampEncodingMsrb
+NOTE: All static elements of a message come before any groups.
+
+2+|
+3+^| SplinePDP Group Encoding Simple
+a|NOTE: "Simple" omits `No. of Groups` from FIX SBE Group.
+
+a|
+[source, hexdump]
+----
+4400
+----
+|Group block length
+|0
+|2
+|68
+a|NOTE: 68 octets[bytes] is the length of one element in the group 
+
+a|
+[source, hexdump]
+----
+0100
+----
+|NumInGroup
+|2
+|2
+|1
+a|Number of elements in the group.
+
+
+2+^|
+3+^| Curve FeatureSet
+a|NOTE: Curves are 4 byte aligned.
+
+a|
+[source, hexdump]
+----
+61610000
+----
+|Rating
+|0
+|4
+|"aa\0\0"
+a| NOTE: The Rating field is a 4 octet string encoded in "latin-1". If there are
+4 octets in use, "aaa+" for example, then there will be NO ending '\0' character.
+Here, "aa" only requires 2 of the 4 bytes, so the string is Null terminated with '\0'.
+
+a|
+[source, hexdump]
+----
+02
+----
+|Payment
+|4
+|1
+|2 Enumeration meaning "REV"
+|
+
+a|
+[source, hexdump]
+----
+04
+----
+|Coupon
+|5
+|1
+|4% Coupon
+|
+
+a|
+[source, hexdump]
+----
+01
+----
+|Size
+|6
+|1
+|1
+|Enumeration where 1 encodes small(sml) size.
+
+a|
+[source, hexdump]
+----
+03
+----
+|Liquidity
+|7
+|1
+|3
+|Enumeration where 3 encodes Liquid(lqd).
+
+|
+1+^| Yields
+4+a| For this Curve message there will always be 30 tenors, in the range of 1 to 30, inclusive.
+They are represented implicitly as `index + 1`. For instance, the 10 year tenor is at positon 9,
+assuming an index starting at 0. This allows for only the yields to be transmitted, as they are
+transmitted in tenor ascending order, allowing the tenor to be recovered by `index + 1`.
+Yields are transmitted as an array of int16_t, which are Decimal16 encoded values. All 16 bits
+are for the mantissa and the exponent is a constant int8_t with value '-3'.
+
+2+a|
+[source, hexdump]
+----
+060f 890e 0d0e 8f0d 770d
+750d 860d a00d c10d ea0d
+200e 5f0e ae0e fe0e 3b0f
+730f aa0f d70f fa0f 1a10
+3510 4c10 6010 7210 7e10
+8b10 9810 a410 b010 bc10
+----
+|8
+|60
+2+a|
+[source, python]
+----
+[3846, 3721, 3597, 3471, 3447,
+ 3445, 3462, 3488, 3521, 3562,
+ 3616, 3679, 3758, 3838, 3899,
+ 3955, 4010, 4055, 4090, 4122,
+ 4149, 4172, 4192, 4210, 4222,
+ 4235, 4248, 4260, 4272, 4284]
+----
+|===
+
+[sidebar]
+****
+NOTE: As a Decimal16 with a fixed exponent of `-3`, the resulting yields are:
+[source, python]
+----
+[3.846, 3.721, 3.597, 3.471, 3.447,
+ 3.445, 3.462, 3.488, 3.521, 3.562,
+ 3.616, 3.679, 3.758, 3.838, 3.899,
+ 3.955, 4.01, 4.055, 4.09, 4.122,
+ 4.149, 4.172, 4.192, 4.21, 4.222,
+ 4.235, 4.248, 4.26, 4.272, 4.284]
+----
+****
+
+=== SplinePDP Price and Yield Prediction Update Message Specification
+
+include::header.adoc[tag=sofh_table_tag]
+include::fixsbe.adoc[tag=spline_message_header_table_tag]
+
+<<<
+
+include::parts_is_parts.adoc[tag=muni_yield_prediction_update_tag]
+
+==== Muni Yield Prediction
+
+Each row in a Yield Prediction Message represents a
+bond, a size bucket, bid, mid, and ask yields,
+and if available, bid, mid, and ask prices.
+
+interval: 2024-05-29 17:00:00
+
+.MuniYieldPrediction
+[%header, %autowidth]
+|===
+|cusip: str |par_traded_bucket: f64 |bid_yield: f64 |mid_yield: f64 |ask_yield: f64 |bid_price: f64 |mid_price: f64 |ask_price: f64
+
+| 989790TN0 | 100000.0          | 4.59      | 4.449     | 4.308     | null      | null      | null      
+| 989790TN0 | 500000.0          | 4.537     | 4.406     | 4.274     | null      | null      | null      
+
+|===
+
+==== Yield Prediction Message Decoded
+
+[source, hexdump]
+----
+00000000: 0000 0052 eb50 0400 022a 0001 10ed 5066  .....P...*....Pf
+00000010: 2000 0200 3836 3932 3635 5941 3000 0105   .,.869265YA0...
+00000020: 200f d50e 8b0e 0000 0000 0000 0000 0000   ...............
+00000030: 0000 0000 3836 3932 3635 5941 3000 0505  ....869265YA0...
+00000040: 2f0e f40d ba0d 0000 0000 0000 0000 0000  /...............
+00000050: 0000 0000                                ....
+----
+
+[%header,cols="4,4,2,2,3,8"]
+|===
+|Wire Format |Name |Offset |Length |Interpreted value |Notes
+
+6+^| SOFH message length
+
+a| [source, hexdump]
+----
+0000052
+----
+
+|SOFH message length
+|0
+|4
+|82
+|
+
+a|
+[source, hexdump]
+----
+eb50
+----
+
+|SOFH encoding
+|4
+|2
+|SBE little-endian
+|
+
+6+^| SplinePDP SBE Header
+
+a|
+[source, hexdump]
+----
+0400
+----
+
+|SBE root block length
+|0
+|2
+|4
+a| NOTE: Offset restarts from beginning of header.
+
+
+NOTE: root block is only the fixed size of the message and does not include
+the length of any groups.
+
+a|
+[source, hexdump]
+----
+02
+----
+
+|SBE template ID
+|2
+|1
+|2
+a|NOTE: template ID is equivalent to message id or tag 35 in FIX tagvalue format.
+
+NOTE: 2 is part of an enumeration where 2 = Yield Prediction
+
+a|
+[source, hexdump]
+----
+2a
+----
+
+|SBE schema ID
+|3
+|1
+|42
+a|NOTE: This is a unique number in the set of Spline FIX schemas that contains the application
+level messages for SplinePDP. SchemaId 42
+
+
+a|
+[source, hexdump]
+----
+00
+----
+
+|SBE schema version
+|4
+|1
+|0
+a| Version 0 (the first version) of the SplinePDP Schema 42.
+
+a|
+[source, hexdump]
+----
+01
+----
+
+|No. of groups
+|5
+|1
+|1
+|There is one group in this message which contains a single Curve.
+
+6+^| SplinePDP Yield Prediction
+
+2+|
+3+^| SplinePDP DateTime
+|
+
+a|
+[source, hexdump]
+----
+10ed5066
+----
+|SplinePDP DateTime
+|0
+|4
+|1716579600
+a|seconds past Unix EPOCH. As a datetime: `2024-05-24T24:15.40`
+
+
+NOTE: SplinePDP name for this complex type: timestampEncodingMsrb
+NOTE: All static elements of a message come before any groups.
+
+2+|
+3+^| SplinePDP Group Encoding Simple
+a|NOTE: "Simple" omits `No. of Groups` from FIX SBE Group.
+
+a|
+[source, hexdump]
+----
+2000
+----
+|Group block length
+|0
+|2
+|32
+a|NOTE: 32 octets[bytes] is the length of one element in the group. Includes 2 bytes of padding for byte alignment. 
+
+a|
+[source, hexdump]
+----
+0200
+----
+|NumInGroup
+|2
+|2
+|2
+a|Number of elements in the group.
+
+a|
+[source, hexdump]
+----
+383639323635594130
+----
+|cusip
+|0
+|9
+|869265YA0
+|
+
+a|
+[source, hexdump]
+----
+00
+----
+|PriceBitset
+|9
+|1
+|False False False False
+|
+
+a|
+[source, hexdump]
+----
+01
+----
+|Par_traded_bucket:mantissa
+|10
+|1
+|1
+|
+
+a|
+[source, hexdump]
+----
+01
+----
+|Par_traded_bucket:exponent
+|11
+|1
+|5
+|Par_traded_bucket = 1*100,000
+
+a|
+[source, hexdump]
+----
+200f
+----
+|bid_yield.mantissa
+|12
+|2
+|3872
+|constant exponent=-3 results in 3.872
+
+a|
+[source, hexdump]
+----
+d50e
+----
+|mid_yield.mantissa
+|14
+|2
+|3797
+|constant exponent=-3 results in 3.797
+
+a|
+[source, hexdump]
+----
+8b0e
+----
+|ask_yield.mantissa
+|16
+|2
+|3723
+|constant exponent=-3 results in 3.723
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|bid_price.mantissa
+|18
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|mid_price.mantissa
+|22
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|ask_price.mantissa
+|26
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+0000
+----
+|padding for 4 byte alignment
+|30
+|2
+|0
+|
+
+
+
+
+
+
+a|
+[source, hexdump]
+----
+383639323635594130
+----
+|cusip
+|0
+|9
+|869265YA0
+|
+
+a|
+[source, hexdump]
+----
+00
+----
+|PriceBitset
+|9
+|1
+|False False False False
+|
+
+a|
+[source, hexdump]
+----
+05
+----
+|Par_traded_bucket:mantissa
+|10
+|1
+|5
+|
+
+a|
+[source, hexdump]
+----
+05
+----
+|Par_traded_bucket:exponent
+|11
+|1
+|5
+|Par_traded_bucket = 5*100,000
+
+a|
+[source, hexdump]
+----
+2f0e
+----
+|bid_yield.mantissa
+|12
+|2
+|3631
+|constant exponent=-3 results in 3.631
+
+a|
+[source, hexdump]
+----
+f40d
+----
+|mid_yield.mantissa
+|14
+|2
+|3375
+|constant exponent=-3 results in 3.375
+
+a|
+[source, hexdump]
+----
+ba0d
+----
+|ask_yield.mantissa
+|16
+|2
+|3514
+|constant exponent=-3 results in 3.514
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|bid_price.mantissa
+|18
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|mid_price.mantissa
+|22
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+00000000
+----
+|ask_price.mantissa
+|26
+|4
+|Null
+|constant exponent=-3 results in 0 * 1,000, though is 32 bit mantissa to provide greater range.
+
+a|
+[source, hexdump]
+----
+0000
+----
+|padding for 4 byte alignment
+|30
+|2
+|0
+|
+
+
+|===
