@@ -2,7 +2,7 @@ import logging
 import threading
 from typing import Callable, Union
 
-from fix.reader import SessionContext
+from joshua.fix.reader import SessionContext
 
 """NOTE:
 There is also a HeartbeatTimer in

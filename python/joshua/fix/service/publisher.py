@@ -369,7 +369,6 @@ def publish_main(cmd_ctx: Dict[str, Any]) -> int:
     curves_prefix: str
     combined_predictions_prefix = "combined/predictions"
     curves_prefix = "curves"
-
     work_dir = "~/work"
     tradedate_to_monitor = cmd_ctx["tradedate"]
 

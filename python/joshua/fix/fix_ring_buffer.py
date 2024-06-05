@@ -13,7 +13,6 @@ from joshua.fix.messages.predictions import MuniYieldPredictionMessageFactory
 
 
 def initialize() -> None:
-
     # logger.getLogger().setLevel(logger.DEBUG)
     pl.Config.set_tbl_rows(30)
     pl.Config.set_tbl_width_chars(300)
@@ -207,17 +206,20 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                     curve_metrics["total_bytes"] = (
                         cast(int, curve_metrics["total_bytes"]) + tb
                     )
-                    (curve_dt_tm, feature_list, df_list, rem_bytes) = (
-                        MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(
-                            data
-                        )
+                    (
+                        curve_dt_tm,
+                        feature_list,
+                        df_list,
+                        rem_bytes,
+                    ) = MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(
+                        data
                     )
                     curve_interval_timestamp = int(curve_dt_tm.timestamp())
                     curve_ts = curve_metrics.get("timestamps")
                     if curve_ts is None:
                         curve_ts = {f"{curve_interval_timestamp}": 0}
-                    curve_ts[f"{curve_interval_timestamp}"] = (
-                        curve_ts[f"{curve_interval_timestamp}"] + 1
+                    curve_ts[f"{curve_interval_timestamp}"] = (  # type: ignore[index]
+                        curve_ts[f"{curve_interval_timestamp}"] + 1  # type: ignore[index]
                     )
                     curve_metrics["timestamps"] = curve_ts
                     for feat, df in zip(feature_list, df_list):
@@ -255,19 +257,21 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                     prediction_metrics["total_bytes"] = (
                         prediction_metrics["total_bytes"] + tb
                     )
-                    (prediction_dt_tm, df, rem_bytes) = (
-                        MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
-                            data
-                        )
+                    (
+                        prediction_dt_tm,
+                        df,
+                        rem_bytes,
+                    ) = MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
+                        data
                     )
                     prediction_interval_timestamp = int(prediction_dt_tm.timestamp())
                     prediction_ts = prediction_metrics.get("timestamps")
                     if prediction_ts is None:
-                        prediction_ts = {f"{prediction_interval_timestamp}": 0}
-                    prediction_ts[f"{prediction_interval_timestamp}"] = (
-                        prediction_ts[f"{prediction_interval_timestamp}"] + 1
+                        prediction_ts = {f"{prediction_interval_timestamp}": 0}  # type: ignore[assignment]
+                    prediction_ts[f"{prediction_interval_timestamp}"] = (  # type: ignore[index]
+                        prediction_ts[f"{prediction_interval_timestamp}"] + 1  # type: ignore[index]
                     )
-                    prediction_metrics["timestamps"] = prediction_ts
+                    prediction_metrics["timestamps"] = cast(int, prediction_ts)
                     prediction_metrics["total_messages"] = (
                         prediction_metrics["total_messages"] + 1
                     )
@@ -316,9 +320,12 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                 MuniCurvesMessageFactory.schema_id,
                 MuniCurvesMessageFactory.version,
             ):
-                (curve_dt_tm, feature_list, df_list, rem_bytes) = (
-                    MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(data)
-                )
+                (
+                    curve_dt_tm,
+                    feature_list,
+                    df_list,
+                    rem_bytes,
+                ) = MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(data)
                 return {
                     "msg_name": "MuniCurve",
                     "interval": curve_dt_tm,
@@ -331,10 +338,12 @@ class FixReadonlyRingBuffer(ReadonlyRingBuffer):
                 MuniYieldPredictionMessageFactory.schema_id,
                 MuniYieldPredictionMessageFactory.version,
             ):
-                (prediction_dt_tm, df, rem_bytes) = (
-                    MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
-                        data
-                    )
+                (
+                    prediction_dt_tm,
+                    df,
+                    rem_bytes,
+                ) = MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
+                    data
                 )
                 return {
                     "msg_name": "MuniYieldPrediction",

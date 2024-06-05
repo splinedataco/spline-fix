@@ -68,7 +68,7 @@ def test_group_size_encoding_simple_max_elements_allowed() -> None:
 
     for q, a in zip(questions, answers):
         ans = GroupSizeEncodingSimple.max_elements_allowed(
-            single_element=q[0], additional_byte_restrict=q[1], alignment_by=q[2]
+            single_element=q[0], additional_byte_restrict=q[1], alignment_by=q[2]  # type: ignore[arg-type]
         )
         assert ans == a
 
@@ -389,7 +389,7 @@ def test_group_size_encoding_simple_construct_doesnt_fit_in_one_packet() -> None
 
     # now again, but we'll split it into multiple parts
     max_len = GroupSizeEncodingSimple.max_elements_allowed(
-        curve_list[0], additional_byte_restrict=8, alignment_by=4
+        curve_list[0], additional_byte_restrict=8, alignment_by=4  # type: ignore[arg-type]
     )
     assert max_len == 21
     curve_group0 = GroupSizeEncodingSimple(
@@ -473,7 +473,7 @@ def test_group_size_encoding_simple_construct_doesnt_fit_in_one_packet_aligned_t
 
     # now again, but we'll split it into multiple parts
     max_len = GroupSizeEncodingSimple.max_elements_allowed(
-        curve_list[0], additional_byte_restrict=8, alignment_by=8
+        curve_list[0], additional_byte_restrict=8, alignment_by=8  # type: ignore[arg-type]
     )
     assert max_len == num_curves - 1
     curve_group0 = GroupSizeEncodingSimple(

@@ -92,7 +92,7 @@ class TestHelpers:
 
     @staticmethod  # type: ignore[arg-type]
     @contextmanager
-    def idependent_ring_buffers(integration_test_data_dir: str) -> Dict[str, Path]:
+    def idependent_ring_buffers(integration_test_data_dir: str) -> Dict[str, Path]:  # type: ignore[misc]
         import polars as pl
         import datetime as dt
         from joshua.fix.utils.ring_buffer import WritableRingBuffer

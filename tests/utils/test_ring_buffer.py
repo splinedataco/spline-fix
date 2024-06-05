@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 from io import BytesIO
 import mmap
 
-from joshua.core.utils.ring_buffer import WritableRingBuffer, ReadonlyRingBuffer
+from joshua.fix.utils.ring_buffer import WritableRingBuffer, ReadonlyRingBuffer
 
 
 def test_writable_ring_buffer_init() -> None:

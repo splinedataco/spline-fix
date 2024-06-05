@@ -1,4 +1,5 @@
 # Tooling
+build
 # still used in 'make test'
 coverage[toml]
 pytest >= 7.4.4
@@ -22,7 +23,6 @@ sphinxcontrib-serializinghtml
 sphinxcontrib-napoleon
 commonmark
 stevedore >= 4.0.0
-setuptools-rust >= 1.8.1
 setuptools >= 69.0.2
 types-pytz
 tox >= 4.11.1

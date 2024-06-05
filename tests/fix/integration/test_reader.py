@@ -74,9 +74,12 @@ def curves_print_handler(data: bytes, _conn: Connection) -> Tuple[bool, bytes]:
     head_len = Sofh.struct_size_bytes() + SplineMessageHeader.struct_size_bytes()
     head_pad = align_by(head_len, 4)
     remaining_bytes = remaining_bytes[head_pad:]
-    (dttm_de, feature_sets_de, dfs_de, remaining_bytes) = (
-        MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(remaining_bytes)
-    )
+    (
+        dttm_de,
+        feature_sets_de,
+        dfs_de,
+        remaining_bytes,
+    ) = MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(remaining_bytes)
     for (
         feat,
         df,
@@ -101,10 +104,12 @@ def yield_predictions_print_handler(
     head_len = Sofh.struct_size_bytes() + SplineMessageHeader.struct_size_bytes()
     head_pad = align_by(head_len, 4)
     remaining_bytes = remaining_bytes[head_pad:]
-    (dttm_de, df_de, remaining_bytes) = (
-        MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
-            remaining_bytes
-        )
+    (
+        dttm_de,
+        df_de,
+        remaining_bytes,
+    ) = MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
+        remaining_bytes
     )
     logger.debug("prediction {}:\n{}".format(dttm_de, df_de))
 
@@ -112,7 +117,7 @@ def yield_predictions_print_handler(
 
 
 @pytest.mark.timeout(timeout=20, method="signal")
-def test_fix_reader_callback(integration_test_data_dir) -> None:
+def test_fix_reader_callback(integration_test_data_dir) -> None:  # type: ignore[no-untyped-def]
     """To run this and get debug logger output
     pytest --capture=tee-sys --log-level=DEBUG -k test_fix_reader_callback -o log_cli=true
     """
@@ -237,7 +242,7 @@ def test_fix_reader_callback(integration_test_data_dir) -> None:
 
 
 @pytest.mark.timeout(timeout=20, method="signal")
-def test_fix_reader_callback_interlaced(integration_test_data_dir) -> None:
+def test_fix_reader_callback_interlaced(integration_test_data_dir) -> None:  # type: ignore[no-untyped-def]
     """To run this and get debug logger output
     pytest --capture=tee-sys --log-level=DEBUG -k test_fix_reader_callback -o log_cli=true
     """

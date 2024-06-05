@@ -1,5 +1,6 @@
 [build-system]
 requires = [
+  "build",
   "pip-tools>=7.3.0",
   "pytest>=7.4.4",
   "pytest-mock",
@@ -44,26 +45,27 @@ dependencies = [
 requires-python = ">=3.10, <3.13"
 
 [project.scripts]
-sfix = "joshua.fix.main:main"
+sfix = "joshua.fix.feedhandler.datareader:main"
 
 [tool.setuptools.packages.find]
 where = ["python"]
-include = ["joshua.fix"]
-namespaces = true
+include = ["joshua"]
+namespaces = false
 
 [tool.isort]
 profile = "black"
 
 [tool.mypy]
-namespace_packages = true
-explicit_package_bases = true
-mypy_path = "python"
+namespace_packages = false
+explicit_package_bases = false
+mypy_path = "python/joshua"
 exclude = [
 ]
 disallow_untyped_defs = true
 warn_unused_ignores = true
 show_error_codes = true
-files = ["python/fix", "tests"]
+files = ["python/joshua", "tests"]
+
 [[tool.mypy.overrides]]
 module = "joshua.fix"
 #disable_error_code = ["attr-defined"]

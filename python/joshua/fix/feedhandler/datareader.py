@@ -8,9 +8,6 @@ import os
 import socket
 
 from joshua.fix.client import FixClientSession
-from joshua.fix.fixp.messages import (
-    Jwt,
-)
 from joshua.fix.client import HandleNegotiation
 from joshua.fix.reader import SessionStateEnum
 from joshua.fix.service.spline_data import SignalHandler

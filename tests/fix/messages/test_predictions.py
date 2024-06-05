@@ -286,7 +286,7 @@ def test_muniyield_prediction_serialize_deserialize() -> None:
     assert my_deser == my0
 
 
-def test_muniyield_prediction_message_factory_serialize_from_dataframe(
+def test_muniyield_prediction_message_factory_serialize_from_dataframe(  # type: ignore[no-untyped-def]
     integration_test_data_dir,
 ) -> None:
     """To run this and get debug logging output
@@ -437,7 +437,7 @@ def test_muniyield_prediction_message_factory_serialize_from_dataframe(
     assert msg_bodies == 3
 
 
-def test_muniyield_prediction_factory_deserialize_no_header(
+def test_muniyield_prediction_factory_deserialize_no_header(  # type: ignore[no-untyped-def]
     integration_test_data_dir,
 ) -> None:
     """To run this and get debug logging output
@@ -500,10 +500,12 @@ def test_muniyield_prediction_factory_deserialize_no_header(
         assert smh.schema_id == 42
         assert smh.version == 0
         # great, the message type we knew was there. Deserialize now.
-        (dttm_de, df_de, remaining_bytes) = (
-            MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
-                remaining_bytes
-            )
+        (
+            dttm_de,
+            df_de,
+            remaining_bytes,
+        ) = MuniYieldPredictionMessageFactory.deserialize_to_dataframe_no_header(
+            remaining_bytes
         )
         logging.debug("datetime: {}".format(dttm_de))
         logging.debug("dataframe:\n{}".format(df_de))

@@ -455,7 +455,7 @@ def test_featureset_from_str() -> None:
     assert str(fs) == "aaa_go_5_lrg_lqd"
 
 
-def test_municurves_message_factory_serialize_from_dataframes(
+def test_municurves_message_factory_serialize_from_dataframes(  # type: ignore[no-untyped-def]
     integration_test_data_dir,
 ) -> None:
     """To run this and get debug logging output
@@ -570,7 +570,7 @@ def test_municurves_message_factory_serialize_from_dataframes(
         curves = curves[1:]
 
 
-def test_municurves_factory_deserialize_no_header(integration_test_data_dir) -> None:
+def test_municurves_factory_deserialize_no_header(integration_test_data_dir) -> None:  # type: ignore[no-untyped-def]
     """To run this and get debug logging output
     pytest --capture=tee-sys --log-level=DEBUG -k test_municurves_factory_deserialize_no_header -o log_cli=true
     """
@@ -649,10 +649,13 @@ def test_municurves_factory_deserialize_no_header(integration_test_data_dir) -> 
         assert smh.schema_id == 42
         assert smh.version == 0
         # great, the message type we knew was there. Deserialize now.
-        (dttm_de, feature_sets_de, dfs_de, remaining_bytes) = (
-            MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(
-                remaining_bytes
-            )
+        (
+            dttm_de,
+            feature_sets_de,
+            dfs_de,
+            remaining_bytes,
+        ) = MuniCurvesMessageFactory.deserialize_to_dataframes_no_header(
+            remaining_bytes
         )
         logging.debug("datetime: {}".format(dttm_de))
         logging.debug("feature_sets: {}".format(feature_sets_de))

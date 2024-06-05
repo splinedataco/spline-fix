@@ -6,7 +6,7 @@ from joshua.fix.fix_ring_buffer import FixReadonlyRingBuffer
 # will test with curves because smaller
 
 
-def test_open_independent_buffers(integration_test_data_dir, helpers) -> None:
+def test_open_independent_buffers(integration_test_data_dir, helpers) -> None:  # type: ignore[no-untyped-def]
     with helpers.idependent_ring_buffers(integration_test_data_dir) as buff_paths:
         curves_rb = FixReadonlyRingBuffer(filename=buff_paths["curves"])
         preds_rb = FixReadonlyRingBuffer(filename=buff_paths["predictions"])
