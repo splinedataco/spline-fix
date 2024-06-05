@@ -176,8 +176,10 @@ def main() -> int:
     """
     # Config
     cmd_ctx = {
-        "ipv4addr": "3.137.181.235",
-        "port": 16923,
+        # "ipv4addr": "fix.splinedata.com",
+        # "port": 16923,
+        "ipv4addr": "127.0.0.1",
+        "port": 36000,
         "work_dir": "~/client_s3",
         "heartbeat_interval": 1000,
         "loglevel": loglevel,
